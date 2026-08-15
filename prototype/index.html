@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#eef1f4" />
+  <title>Arun Granites — Quarry Manager (Prototype)</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <button class="icon-btn" id="menuToggle" title="Menu" aria-label="Menu">☰</button>
+      <div class="brand">Arun <span>Granites</span></div>
+
+      <div class="switcher" id="quarrySwitcher">
+        <button class="switcher-btn" id="quarryBtn" type="button" aria-haspopup="listbox">
+          <div style="min-width:0">
+            <small>Quarry</small>
+            <strong id="quarryLabel">—</strong>
+          </div>
+          <span class="chev">▼</span>
+        </button>
+        <div class="switcher-menu" id="quarryMenu" role="listbox"></div>
+      </div>
+
+      <div class="top-actions">
+        <button class="icon-btn" id="resetDemo" title="Reset demo data">↺</button>
+        <div class="user-chip">
+          <div class="avatar">A</div>
+          <span>Accountant</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <aside class="nav" id="sideNav">
+        <div class="nav-section" data-nav="overview">
+          <button type="button" class="nav-label" aria-expanded="true">
+            <span>Overview</span><span class="nav-chev" aria-hidden="true"></span>
+          </button>
+          <div class="nav-items">
+            <button class="nav-item active" data-page="dashboard"><span class="dot"></span>Dashboard</button>
+            <button class="nav-item" data-page="expenses"><span class="dot"></span>All Transactions</button>
+            <button class="nav-item" data-page="reports"><span class="dot"></span>Reports / P&amp;L</button>
+          </div>
+        </div>
+
+        <div class="nav-section" data-nav="procurement">
+          <button type="button" class="nav-label" aria-expanded="true">
+            <span>Procurement &amp; Sale</span><span class="nav-chev" aria-hidden="true"></span>
+          </button>
+          <div class="nav-items">
+            <button class="nav-item" data-page="sales"><span class="dot"></span>Block Marking</button>
+            <button class="nav-item" data-page="sale"><span class="dot"></span>Procurement &amp; Sale</button>
+            <button class="nav-item" data-page="customers"><span class="dot"></span>Customer</button>
+          </div>
+        </div>
+
+        <div class="nav-section" data-nav="purchase">
+          <button type="button" class="nav-label" aria-expanded="true">
+            <span>Purchase &amp; Expense</span><span class="nav-chev" aria-hidden="true"></span>
+          </button>
+          <div class="nav-items">
+            <button class="nav-item" data-page="purchase"><span class="dot"></span>Purchase &amp; Expense</button>
+            <button class="nav-item" data-page="finance"><span class="dot"></span>Finance / Loan</button>
+            <button class="nav-item" data-page="gift"><span class="dot"></span>Monthly Gift</button>
+            <button class="nav-item" data-page="royalty"><span class="dot"></span>Royalty</button>
+            <button class="nav-item" data-page="machinery"><span class="dot"></span>Machinery</button>
+            <button class="nav-item" data-page="vendors"><span class="dot"></span>Vendor</button>
+          </div>
+        </div>
+
+        <div class="nav-section" data-nav="hr">
+          <button type="button" class="nav-label" aria-expanded="true">
+            <span>HR &amp; Payroll</span><span class="nav-chev" aria-hidden="true"></span>
+          </button>
+          <div class="nav-items">
+            <button class="nav-item" data-page="staffmgmt"><span class="dot"></span>Staff Management</button>
+            <button class="nav-item" data-page="staffatt"><span class="dot"></span>Attendance</button>
+            <button class="nav-item" data-page="staffsal"><span class="dot"></span>Salary Sheet</button>
+            <button class="nav-item" data-page="payroll"><span class="dot"></span>Payroll</button>
+          </div>
+        </div>
+
+        <div class="nav-section" data-nav="setup">
+          <button type="button" class="nav-label" aria-expanded="true">
+            <span>Setup</span><span class="nav-chev" aria-hidden="true"></span>
+          </button>
+          <div class="nav-items">
+            <button class="nav-item" data-page="masters"><span class="dot"></span>Masters</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <!-- DASHBOARD -->
+        <section class="page active" id="page-dashboard">
+          <div class="page-head">
+            <div>
+              <h1>Dashboard</h1>
+              <p>Overview for the selected quarry. Pick FY here for year totals.</p>
+            </div>
+            <div class="filters">
+              <select id="dashYear" title="Financial year"></select>
+              <span class="context-pill" id="dashPill">—</span>
+            </div>
+          </div>
+          <div class="grid grid-4" id="dashStats"></div>
+
+          <div class="grid grid-2 dash-charts" style="margin-top:12px">
+            <div class="panel">
+              <div class="panel-head"><h2>Monthly cash flow</h2><span class="hint" id="dashCashHint">Credit vs Debit</span></div>
+              <div class="dash-chart-wrap"><canvas id="dashCashChart" aria-label="Monthly cash flow chart"></canvas></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h2>Expense by category</h2><span class="hint">Debits this FY</span></div>
+              <div class="dash-chart-wrap"><canvas id="dashExpensePie" aria-label="Expense category pie chart"></canvas></div>
+            </div>
+          </div>
+
+          <div class="grid grid-2 dash-charts" style="margin-top:12px">
+            <div class="panel">
+              <div class="panel-head"><h2>Production (CBM)</h2><span class="hint">Block marking volume</span></div>
+              <div class="dash-chart-wrap"><canvas id="dashProdChart" aria-label="Production chart"></canvas></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h2>Top customers</h2><span class="hint">Marking value</span></div>
+              <div class="dash-chart-wrap"><canvas id="dashCustomerChart" aria-label="Top customers chart"></canvas></div>
+            </div>
+          </div>
+
+          <div class="grid grid-2" style="margin-top:12px">
+            <div class="panel">
+              <div class="panel-head"><h2>Recent expenses</h2></div>
+              <div class="panel-body" id="dashExpenses"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h2>Recent markings</h2></div>
+              <div class="panel-body" id="dashMarkings"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SALE (sales + receipts) -->
+        <section class="page" id="page-sale">
+          <div class="page-head">
+            <div>
+              <h1>Procurement &amp; Sale</h1>
+              <p>Block sales with full / partial / multiple payments · cash receipts for this quarry.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost" id="addSaleCreditBtn" type="button">+ Other credit</button>
+              <button class="btn btn-primary" id="addSaleBtn" type="button">+ Receive payment</button>
+            </div>
+          </div>
+          <div class="tabs" id="saleTabs">
+            <button class="tab active" data-saletab="sales" type="button">Sales</button>
+            <button class="tab" data-saletab="payments" type="button">All receipts</button>
+          </div>
+          <div id="saletab-sales" class="saletab">
+            <div class="grid grid-4" id="saleStats"></div>
+            <div class="panel" style="margin-top:12px">
+              <div class="panel-head">
+                <h2>Sales (from block marking)</h2>
+                <div class="filters">
+                  <select id="saleMonth" title="Filter by month"></select>
+                  <select id="salePayFilter">
+                    <option value="all">All status</option>
+                    <option value="unpaid">Unpaid</option>
+                    <option value="partial">Partial</option>
+                    <option value="paid">Paid</option>
+                  </select>
+                  <input type="search" id="saleSearch" placeholder="Search block / customer…" />
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th><th>Customer</th><th>Block</th>
+                      <th class="num">Sale</th><th class="num">Received</th><th class="num">Balance</th>
+                      <th>Status</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="saleTable"></tbody>
+                </table>
+              </div>
+              <p style="padding:10px 14px;margin:0;color:var(--muted);font-size:.8rem">
+                Click a sale for payment history. Receive once (full) or many times (partial) until paid.
+              </p>
+            </div>
+          </div>
+          <div id="saletab-payments" class="saletab" style="display:none">
+            <div class="grid grid-4" id="salePayStats"></div>
+            <div class="panel" style="margin-top:12px">
+              <div class="panel-head">
+                <h2>All cash receipts</h2>
+                <div class="filters">
+                  <select id="salePayMonth" title="Filter by month"></select>
+                  <input type="search" id="salePaySearch" placeholder="Search…" />
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th><th>Customer</th><th>Comment</th><th>Linked sale</th>
+                      <th class="num">Credit</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="salePayTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SALE DETAIL -->
+        <section class="page" id="page-saledetail">
+          <div class="page-head">
+            <div>
+              <button type="button" class="btn btn-ghost btn-sm" id="saleDetailBack" style="margin-bottom:8px">← Back to Procurement &amp; Sale</button>
+              <h1 id="saleDetailTitle">Procurement &amp; Sale</h1>
+              <p id="saleDetailSub">Invoice &amp; payments</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <div class="party-bal-card" id="saleDetailBal"></div>
+              <button type="button" class="btn btn-primary" id="saleDetailPayBtn">+ Receive payment</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-body" id="saleDetailProfile" style="padding:0"></div>
+          </div>
+          <div class="grid grid-4" id="saleDetailStats" style="margin-top:12px"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>Payments</h2>
+              <input type="search" id="saleDetailPaySearch" placeholder="Search…" />
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th><th>Date</th><th>Comment</th>
+                    <th class="num">Amount</th><th class="num">Running received</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="saleDetailPayTable"></tbody>
+              </table>
+            </div>
+            <p style="padding:10px 14px;margin:0;color:var(--muted);font-size:.8rem">
+              Partial payments allowed — keep receiving until balance is zero. Each receipt posts Credit in cash book.
+            </p>
+          </div>
+        </section>
+
+        <!-- PURCHASE & EXPENSE (debits) -->
+        <section class="page" id="page-purchase">
+          <div class="page-head">
+            <div>
+              <h1>Purchase &amp; Expense</h1>
+              <p>Debit entries for this quarry · purchases, expenses &amp; vendor payments.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-primary" id="addExpenseBtn">+ Add debit</button>
+            </div>
+          </div>
+          <div class="grid grid-4" id="purchaseStats"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>Purchase &amp; expense entries</h2>
+              <div class="filters">
+                <select id="purchaseMonth" title="Filter by month"></select>
+                <input type="search" id="purchaseSearch" placeholder="Search…" />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th><th>Type</th><th>Category</th><th>Comment</th><th class="num">Debit</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="purchaseTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ALL TRANSACTIONS -->
+        <section class="page" id="page-expenses">
+          <div class="page-head">
+            <div>
+              <h1>All Transactions</h1>
+              <p>All credit &amp; debit entries for this quarry · filter by month or type.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost" id="addAllCreditBtn">+ Add credit</button>
+              <button class="btn btn-primary" id="addAllDebitBtn">+ Add debit</button>
+            </div>
+          </div>
+          <div class="grid grid-4" id="expenseStats"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>Entry list</h2>
+              <div class="filters">
+                <select id="expenseMonth" title="Filter by month"></select>
+                <select id="expenseType" title="Filter by type">
+                  <option value="all">All types</option>
+                  <option value="Debit">Debit</option>
+                  <option value="Credit">Credit</option>
+                </select>
+                <input type="search" id="expenseSearch" placeholder="Search…" />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th><th>Type</th><th>Category</th><th>Comment</th><th class="num">Debit</th><th class="num">Credit</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="expenseTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- STAFF MANAGEMENT -->
+        <section class="page" id="page-staffmgmt">
+          <div class="page-head">
+            <div>
+              <h1>Staff Management</h1>
+              <p>Staff (monthly) and contract labour gangs for this quarry.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap" id="staffMgmtHeadActions">
+              <button class="btn btn-ghost" type="button" id="exportStaffMgmtBtn">Export</button>
+              <button class="btn btn-primary" id="addStaffMgmtBtn" type="button">+ Add staff</button>
+            </div>
+            <div style="display:none;gap:8px;flex-wrap:wrap" id="staffMgmtGangActions">
+              <button class="btn btn-primary" type="button" id="smAddLabourBtn">+ Add gang</button>
+            </div>
+          </div>
+          <div class="tabs" id="staffMgmtTabs">
+            <button class="tab active" data-smtab="staff" type="button">Staff</button>
+            <button class="tab" data-smtab="gangs" type="button">Contract group</button>
+          </div>
+
+          <div id="smtab-staff" class="smtab">
+            <div class="grid grid-4" id="staffMgmtStats"></div>
+            <div class="panel" style="margin-top:12px">
+              <div class="panel-head">
+                <h2>All staff</h2>
+                <div class="filters">
+                  <select id="staffMgmtFilter">
+                    <option value="all">All</option>
+                    <option value="Active">Active only</option>
+                    <option value="Left">Left only</option>
+                    <option value="Pending">Pending advance</option>
+                    <option value="LeftMonth">Left this month</option>
+                  </select>
+                  <select id="staffMgmtSort">
+                    <option value="name">Sort: Name</option>
+                    <option value="code">Sort: Code</option>
+                    <option value="join-desc">Sort: Join newest</option>
+                    <option value="bal-desc">Sort: Balance high</option>
+                    <option value="pay-desc">Sort: Pay high</option>
+                    <option value="status">Sort: Status</option>
+                  </select>
+                  <select id="staffMgmtPageSize">
+                    <option value="10">10 / page</option>
+                    <option value="25">25 / page</option>
+                    <option value="50">50 / page</option>
+                  </select>
+                  <input type="search" id="staffMgmtSearch" placeholder="Search name / code / phone / role…" />
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Name</th>
+                      <th>Role</th>
+                      <th>Phone</th>
+                      <th>Pay</th>
+                      <th>Status</th>
+                      <th class="num">Balance</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="staffMgmtTable"></tbody>
+                </table>
+              </div>
+              <div class="pager" id="staffMgmtPager"></div>
+            </div>
+          </div>
+
+          <div id="smtab-gangs" class="smtab" style="display:none">
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Contract group</h2>
+                <div class="filters">
+                  <select id="smLabourFy"></select>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Gang</th>
+                      <th>FY</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="smLabourTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- GANG DETAIL (separate screen via #gang/<id>) -->
+        <section class="page" id="page-gangdetail">
+          <div class="page-head">
+            <div>
+              <button type="button" class="btn btn-ghost btn-sm" id="gangDetailBack" style="margin-bottom:8px">← Back to contract groups</button>
+              <h1 id="gangDetailTitle">Contract group</h1>
+              <p id="gangDetailSub">FY · day rate</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <div class="party-bal-card" id="gangDetailBal"></div>
+              <button type="button" class="btn btn-ghost" id="gangDetailAdvanceBtn">Give advance</button>
+              <button type="button" class="btn btn-ghost" id="gangDetailPayBtn">Pay wage</button>
+              <button type="button" class="btn btn-primary" id="gangDetailEditBtn">Edit</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-body" id="gangDetailProfile" style="padding:0"></div>
+          </div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>Transactions</h2>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Particulars</th>
+                    <th class="num">Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="gangDetailTxnTable"></tbody>
+              </table>
+            </div>
+            <p style="padding:10px 14px;margin:0;color:var(--muted);font-size:.8rem">Advance + Wage payments for this group (FY). Mark attendance under Attendance.</p>
+          </div>
+        </section>
+
+        <!-- STAFF DETAIL (separate screen via #staff/<id>) -->
+        <section class="page" id="page-staffdetail">
+          <div class="page-head">
+            <div>
+              <button type="button" class="btn btn-ghost btn-sm" id="staffDetailBack" style="margin-bottom:8px">← Back to staff list</button>
+              <h1 id="staffDetailTitle">Staff</h1>
+              <p id="staffDetailSub">Profile, transactions &amp; attendance</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <div class="party-bal-card" id="staffDetailBal"></div>
+              <button type="button" class="btn btn-ghost" id="staffDetailAdvanceBtn">Give advance</button>
+              <button type="button" class="btn btn-ghost" id="staffDetailPayBtn">Pay salary</button>
+              <button type="button" class="btn btn-ghost" id="staffDetailOtherBtn">Other txn</button>
+              <button type="button" class="btn btn-danger" id="staffDetailExitBtn">Exit</button>
+              <button type="button" class="btn btn-primary" id="staffDetailRejoinBtn" style="display:none">Rejoin</button>
+              <button type="button" class="btn btn-primary" id="staffDetailEditBtn">Edit</button>
+              <button type="button" class="btn btn-ghost" id="staffDetailDeleteBtn">Delete</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-body" id="staffDetailProfile" style="padding:0"></div>
+          </div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head staff-detail-tabs-head">
+              <div class="party-tabs" id="staffDetailTabs" style="border:none;margin:0">
+                <button type="button" class="party-tab active" data-sdt="txns">Transactions</button>
+                <button type="button" class="party-tab" data-sdt="timeline">Timeline</button>
+              </div>
+              <div id="staffDetailTxnTools" class="filters">
+                <select id="staffDetailTxnScope">
+                  <option value="overall">Overall</option>
+                  <option value="month">Monthly</option>
+                </select>
+                <select id="staffDetailTxnMonth" style="display:none"></select>
+                <select id="staffDetailTxnType">
+                  <option value="all">All types</option>
+                  <option value="Salary">Salary</option>
+                  <option value="Advance">Advance</option>
+                  <option value="Other">Other</option>
+                </select>
+                <input type="search" id="staffDetailTxnSearch" placeholder="Search…" />
+                <button type="button" class="btn btn-ghost btn-sm" id="staffDetailTxnExport">Excel</button>
+                <button type="button" class="btn btn-ghost btn-sm" id="staffDetailTxnPdf">PDF</button>
+              </div>
+            </div>
+            <div id="staffDetailTabTxns">
+              <div class="grid grid-4" id="staffDetailTxnStats" style="padding:10px 12px 0"></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Type</th><th>Date</th><th>Particulars</th>
+                      <th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody id="staffDetailTxnTable"></tbody>
+                </table>
+              </div>
+              <p style="padding:10px 14px;margin:0;color:var(--muted);font-size:.8rem">Advance / Other paid to him = Debit · Salary paid = Credit · Balance Dr = advance pending</p>
+            </div>
+            <div id="staffDetailTabTimeline" style="display:none">
+              <div id="staffDetailTimeline" style="padding:12px"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STAFF ATTENDANCE (separate from Payroll) -->
+        <section class="page" id="page-staffatt">
+          <div class="page-head">
+            <div>
+              <h1>Attendance</h1>
+              <p id="staffAttSub">Staff and contract groups for this quarry.</p>
+            </div>
+            <div class="page-head-tools staff-att-toolbar">
+              <div class="party-tabs staff-att-view-tabs" id="staffAttViewTabs">
+                <button type="button" class="party-tab active" data-saview="day">Daily</button>
+                <button type="button" class="party-tab" data-saview="month">Monthly</button>
+              </div>
+              <div class="staff-att-control" id="staffAttDayWrap">
+                <span class="staff-att-control-label">Date</span>
+                <div class="staff-att-nav">
+                  <button type="button" class="btn btn-ghost btn-sm staff-att-nav-btn" id="staffAttDayPrev" aria-label="Previous day">‹</button>
+                  <input type="date" id="staffAttDate" />
+                  <button type="button" class="btn btn-ghost btn-sm staff-att-nav-btn" id="staffAttDayNext" aria-label="Next day">›</button>
+                </div>
+              </div>
+              <div class="staff-att-control" id="staffAttMonthWrap" style="display:none">
+                <span class="staff-att-control-label">Month</span>
+                <div class="staff-att-nav">
+                  <button type="button" class="btn btn-ghost btn-sm staff-att-nav-btn" id="staffAttMonthPrev" aria-label="Previous month">‹</button>
+                  <strong id="staffAttMonthLabel" class="staff-att-month-label">—</strong>
+                  <button type="button" class="btn btn-ghost btn-sm staff-att-nav-btn" id="staffAttMonthNext" aria-label="Next month">›</button>
+                  <select id="staffAttMonth" aria-label="Pick month"></select>
+                </div>
+              </div>
+              <div class="staff-att-toolbar-actions">
+                <button type="button" class="btn btn-ghost" id="staffAttExcel">Excel</button>
+                <button type="button" class="btn btn-ghost" id="staffAttPdf">PDF</button>
+              </div>
+            </div>
+          </div>
+          <div class="tabs" id="staffAttScopeTabs" style="margin-bottom:12px">
+            <button class="tab active" data-sascope="staff" type="button">Staff</button>
+            <button class="tab" data-sascope="gangs" type="button">Contract group</button>
+          </div>
+          <div class="grid grid-4" id="staffAttStats"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2 id="staffAttPanelTitle">Daily attendance</h2>
+              <input type="search" id="staffAttSearch" placeholder="Search…" />
+            </div>
+            <div class="panel-body" style="padding:0">
+              <div class="att-wrap" id="staffAttGrid"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STAFF SALARY SHEET (separate from Payroll) -->
+        <section class="page" id="page-staffsal">
+          <div class="page-head">
+            <div>
+              <h1>Salary Sheet</h1>
+              <p>Staff salary &amp; advances for this quarry. Workers &amp; labour stay under Payroll.</p>
+            </div>
+          </div>
+
+          <div class="tabs" id="staffSalMainTabs">
+            <button type="button" class="tab active" data-sstab="pay">Pay sheet</button>
+            <button type="button" class="tab" data-sstab="adv">Advances</button>
+          </div>
+
+          <div class="staff-sal-subhead" id="staffSalSubTools">
+            <div class="party-tabs staff-att-view-tabs" id="staffAdvViewTabs" style="display:none">
+              <button type="button" class="party-tab active" data-savadv="day">Daily</button>
+              <button type="button" class="party-tab" data-savadv="month">Monthly</button>
+            </div>
+            <div class="staff-att-control" id="staffSalMonthWrap">
+              <span class="staff-att-control-label">Month</span>
+              <div class="staff-att-nav">
+                <button type="button" class="btn btn-ghost btn-sm staff-att-nav-btn" id="staffSalMonthPrev" aria-label="Previous month">‹</button>
+                <strong id="staffSalMonthLabel" class="staff-att-month-label">—</strong>
+                <button type="button" class="btn btn-ghost btn-sm staff-att-nav-btn" id="staffSalMonthNext" aria-label="Next month">›</button>
+                <select id="staffSalMonth" aria-label="Pick month"></select>
+              </div>
+            </div>
+            <div class="staff-att-control" id="staffAdvDayWrap" style="display:none">
+              <span class="staff-att-control-label">Date</span>
+              <div class="staff-att-nav">
+                <button type="button" class="btn btn-ghost btn-sm staff-att-nav-btn" id="staffAdvDayPrev" aria-label="Previous day">‹</button>
+                <input type="date" id="staffAdvDate" />
+                <button type="button" class="btn btn-ghost btn-sm staff-att-nav-btn" id="staffAdvDayNext" aria-label="Next day">›</button>
+              </div>
+            </div>
+            <div class="staff-att-toolbar-actions" id="staffSalPayActions">
+              <button type="button" class="btn btn-ghost" id="staffSalExcel">Excel</button>
+              <button type="button" class="btn btn-ghost" id="staffSalPdf">PDF</button>
+              <button type="button" class="btn btn-primary" id="staffSalPaySelected" disabled>Pay selected</button>
+              <button type="button" class="btn btn-ghost" id="staffSalPayAll">Pay all unpaid</button>
+            </div>
+            <div class="staff-att-toolbar-actions" id="staffAdvActions" style="display:none">
+              <button type="button" class="btn btn-ghost" id="staffAdvExcel">Excel</button>
+              <button type="button" class="btn btn-ghost" id="staffAdvPdf">PDF</button>
+              <button type="button" class="btn btn-primary" id="staffAdvGiveBtn">+ Give advance</button>
+            </div>
+          </div>
+
+          <div id="staffSalTabPay">
+            <div class="grid grid-4" id="staffSalStats"></div>
+            <div class="panel" style="margin-top:12px">
+              <div class="panel-head">
+                <h2>Staff pay sheet · <span id="staffSalTitleMonth"></span></h2>
+                <div class="filters">
+                  <input type="search" id="staffSalSearch" placeholder="Search staff…" />
+                  <select id="staffSalSort">
+                    <option value="name">Sort: Name</option>
+                    <option value="net-desc">Sort: Net high→low</option>
+                    <option value="net-asc">Sort: Net low→high</option>
+                    <option value="status">Sort: Unpaid first</option>
+                  </select>
+                  <select id="staffSalPageSize">
+                    <option value="10">10 / page</option>
+                    <option value="25">25 / page</option>
+                    <option value="50">50 / page</option>
+                    <option value="9999">All</option>
+                  </select>
+                </div>
+              </div>
+              <p style="padding:8px 14px 0;margin:0;color:var(--muted);font-size:.85rem">Earned from Attendance days/OT − advances this month = Net. Pay posts Salary in Purchase &amp; Expense.</p>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:36px"><input type="checkbox" id="staffSalSelectAll" title="Select all unpaid" aria-label="Select all unpaid" /></th>
+                      <th>Code</th><th>Name</th><th>Role</th><th class="num">Rate</th>
+                      <th class="num">Days</th><th class="num">OT</th>
+                      <th class="num">Earned</th><th class="num">Adv</th><th class="num">Net</th>
+                      <th>Status</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="staffSalTable"></tbody>
+                  <tfoot id="staffSalFoot"></tfoot>
+                </table>
+              </div>
+              <div class="pager" id="staffSalPager"></div>
+            </div>
+          </div>
+
+          <div id="staffSalTabAdv" style="display:none">
+            <div class="grid grid-4" id="staffAdvStats"></div>
+            <div class="panel" style="margin-top:12px">
+              <div class="panel-head">
+                <h2 id="staffAdvPanelTitle">Advances</h2>
+                <div class="filters">
+                  <input type="search" id="staffAdvSearch" placeholder="Search staff / note…" />
+                  <select id="staffAdvSort">
+                    <option value="date-desc">Sort: Date newest</option>
+                    <option value="date-asc">Sort: Date oldest</option>
+                    <option value="amt-desc">Sort: Amount high→low</option>
+                    <option value="name">Sort: Name</option>
+                  </select>
+                  <select id="staffAdvPageSize">
+                    <option value="10">10 / page</option>
+                    <option value="25">25 / page</option>
+                    <option value="50">50 / page</option>
+                    <option value="9999">All</option>
+                  </select>
+                </div>
+              </div>
+              <p style="padding:8px 14px 0;margin:0;color:var(--muted);font-size:.85rem">Staff Salary Advance vouchers only — same books as Purchase &amp; Expense. Deducts on Pay sheet for that month.</p>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th><th>Code</th><th>Name</th><th>Role</th><th>Comment</th><th class="num">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody id="staffAdvTable"></tbody>
+                  <tfoot id="staffAdvFoot"></tfoot>
+                </table>
+              </div>
+              <div class="pager" id="staffAdvPager"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PAYROLL -->
+        <section class="page" id="page-payroll">
+          <div class="page-head">
+            <div>
+              <h1>Payroll</h1>
+              <p>Staff (monthly) &amp; Workers (daily) — hire / exit anytime. Only active people show for the month.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <label class="field" style="margin:0;min-width:140px">
+                <span style="font-size:.7rem;color:var(--muted)">Month</span>
+                <select id="payrollMonth"></select>
+              </label>
+              <button class="btn btn-ghost" id="giveAdvanceBtn">Give advance</button>
+              <button class="btn btn-ghost" id="exitPersonBtn">Mark exit</button>
+              <button class="btn btn-primary" id="hirePersonBtn">+ Hire</button>
+            </div>
+          </div>
+          <div class="tabs" id="payrollTabs">
+            <button class="tab active" data-ptab="attendance">Attendance</button>
+            <button class="tab" data-ptab="salary">Salary sheet</button>
+            <button class="tab" data-ptab="advances">Advances</button>
+            <button class="tab" data-ptab="ledger">Staff ledger</button>
+            <button class="tab" data-ptab="people">People</button>
+            <button class="tab" data-ptab="labour">Labour gangs</button>
+          </div>
+          <div id="ptab-attendance" class="ptab">
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Month attendance</h2>
+                <div class="filters">
+                  <select id="attCategory">
+                    <option value="all">Staff + Worker + Labour</option>
+                    <option value="Staff">Staff only</option>
+                    <option value="Worker">Workers only</option>
+                    <option value="Labour">Labour gangs</option>
+                  </select>
+                  <button class="btn btn-ghost btn-sm" id="exportAttExcel">Excel</button>
+                  <button class="btn btn-ghost btn-sm" id="exportAttPdf">PDF</button>
+                </div>
+              </div>
+              <div class="panel-body" style="padding:0">
+                <div class="att-wrap" id="attGrid"></div>
+              </div>
+            </div>
+          </div>
+          <div id="ptab-salary" class="ptab" style="display:none">
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Pay sheet · <span id="salaryMonthLabel"></span></h2>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="btn btn-ghost btn-sm" id="recalcSalary">Recalculate</button>
+                  <button class="btn btn-ghost btn-sm" id="exportSalExcel">Excel</button>
+                  <button class="btn btn-ghost btn-sm" id="exportSalPdf">PDF</button>
+                  <button class="btn btn-primary btn-sm" id="paySelectedSalaryBtn" disabled>Pay selected</button>
+                  <button class="btn btn-ghost btn-sm" id="payAllSalaryBtn">Pay all unpaid</button>
+                </div>
+              </div>
+              <div class="panel-body" style="color:var(--muted);font-size:.85rem;padding-bottom:0">
+                Mark paid after attendance is final. Includes Staff, Workers and Labour gangs (headcount × rate). Posts Salary / Labour Wage in Purchase &amp; Expense.
+              </div>
+              <div class="table-tools">
+                <input type="search" id="salSearch" placeholder="Search name / designation…" />
+                <select id="salSort">
+                  <option value="name">Sort: Name</option>
+                  <option value="net-desc">Sort: Net high→low</option>
+                  <option value="net-asc">Sort: Net low→high</option>
+                  <option value="status">Sort: Unpaid first</option>
+                  <option value="type">Sort: Type</option>
+                </select>
+                <select id="salPageSize">
+                  <option value="10">10 / page</option>
+                  <option value="25">25 / page</option>
+                  <option value="50">50 / page</option>
+                  <option value="9999">All</option>
+                </select>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:36px"><input type="checkbox" id="salSelectAll" title="Select all unpaid" aria-label="Select all unpaid" /></th>
+                      <th>Name</th><th>Type</th><th>Designation</th><th class="num">Rate</th><th class="num">Days</th><th class="num">OT hrs</th>
+                      <th class="num">Earned</th><th class="num">Adv</th><th class="num">Net</th>
+                      <th>Status</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="salaryTable"></tbody>
+                  <tfoot id="salaryFoot"></tfoot>
+                </table>
+              </div>
+              <div class="pager" id="salPager"></div>
+            </div>
+          </div>
+          <div id="ptab-advances" class="ptab" style="display:none">
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Advances paid to Staff / Workers</h2>
+                <button class="btn btn-primary btn-sm" id="giveAdvanceBtn2">+ Give advance</button>
+              </div>
+              <div class="panel-body" style="color:var(--muted);font-size:.85rem;padding-bottom:0">
+                Same books as Purchase &amp; Expense — Salary / Labour Advance vouchers show here and deduct on Salary sheet when linked to Staff/Worker.
+              </div>
+              <div class="table-tools">
+                <input type="search" id="advSearch" placeholder="Search person / note…" />
+                <select id="advSort">
+                  <option value="date-desc">Sort: Date newest</option>
+                  <option value="date-asc">Sort: Date oldest</option>
+                  <option value="amt-desc">Sort: Amount high→low</option>
+                  <option value="name">Sort: Name</option>
+                </select>
+                <select id="advPageSize">
+                  <option value="10">10 / page</option>
+                  <option value="25">25 / page</option>
+                  <option value="9999">All</option>
+                </select>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th><th>Person</th><th>Type</th><th>Comment</th><th class="num">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody id="advanceTable"></tbody>
+                </table>
+              </div>
+              <div class="pager" id="advPager"></div>
+            </div>
+          </div>
+          <div id="ptab-ledger" class="ptab" style="display:none">
+            <div class="party-layout staff-ledger-layout">
+              <aside class="party-sidebar panel">
+                <div class="party-sidebar-head">
+                  <input type="search" id="staffLedgerSearch" placeholder="Search staff / worker…" />
+                </div>
+                <div class="party-list-head">
+                  <span>Name</span>
+                  <span class="num">Balance</span>
+                </div>
+                <div class="party-list" id="staffLedgerList"></div>
+              </aside>
+              <div class="party-detail panel">
+                <div class="party-detail-head" id="staffLedgerHead">
+                  <div class="empty" style="padding:24px">Select a person</div>
+                </div>
+                <div class="party-detail-tools">
+                  <h2>All transactions</h2>
+                  <div class="filters">
+                    <input type="search" id="staffTxnSearch" placeholder="Search…" />
+                    <button class="btn btn-ghost btn-sm" id="staffTxnExcel" type="button">Excel</button>
+                    <button class="btn btn-ghost btn-sm" id="staffTxnPdf" type="button">PDF</button>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Type</th><th>Date</th><th>Comment</th>
+                        <th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody id="staffTxnTable"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="ptab-people" class="ptab" style="display:none">
+            <div class="panel">
+              <div class="panel-head">
+                <h2>People register</h2>
+                <div class="filters">
+                  <select id="peopleFilter">
+                    <option value="active">Active now</option>
+                    <option value="all">All (incl. left)</option>
+                    <option value="Staff">Active staff</option>
+                    <option value="Worker">Active workers</option>
+                    <option value="Left">Left / exited</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-tools">
+                <input type="search" id="peopleSearch" placeholder="Search name / designation / bank…" />
+                <select id="peopleSort">
+                  <option value="name">Sort: Name</option>
+                  <option value="join-desc">Sort: Joined newest</option>
+                  <option value="type">Sort: Type</option>
+                  <option value="rate-desc">Sort: Rate high→low</option>
+                </select>
+                <select id="peoplePageSize">
+                  <option value="10">10 / page</option>
+                  <option value="25">25 / page</option>
+                  <option value="9999">All</option>
+                </select>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th><th>Type</th><th>Designation</th><th>Bank</th><th>Joined</th><th>Exit</th><th>Status</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="peopleTable"></tbody>
+                </table>
+              </div>
+              <div class="pager" id="peoplePager"></div>
+            </div>
+          </div>
+          <div id="ptab-labour" class="ptab" style="display:none">
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Contract labour gangs</h2>
+                <div class="filters">
+                  <label class="field" style="margin:0;min-width:130px">
+                    <span style="font-size:.7rem;color:var(--muted)">FY</span>
+                    <select id="labourFy"></select>
+                  </label>
+                  <button class="btn btn-ghost btn-sm" id="labourAdvanceBtn" type="button">Give advance</button>
+                  <button class="btn btn-primary btn-sm" id="addLabourBtn" type="button">+ Add gang</button>
+                </div>
+              </div>
+              <div class="panel-body" style="color:var(--muted);font-size:.85rem;padding-bottom:8px">
+                Muster by FY rates · month wage from Attendance headcount (varies day by day) · pay on Salary sheet.
+              </div>
+              <div class="grid grid-4" id="labourStats" style="padding:0 16px 12px"></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Gang</th>
+                      <th class="num">Day</th>
+                      <th class="num">Day rate</th>
+                      <th class="num">Night</th>
+                      <th class="num">OT hrs</th>
+                      <th class="num">Mastiri</th>
+                      <th class="num">Wage</th>
+                      <th class="num">Advances</th>
+                      <th class="num">Pending</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="labourTable"></tbody>
+                </table>
+              </div>
+              <div class="panel-body" id="labourAdvanceNote" style="padding-top:0"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SALES -->
+        <section class="page" id="page-sales">
+          <div class="page-head">
+            <div>
+              <h1>Block Marking</h1>
+              <p>One party · one date · multiple blocks in one entry.</p>
+            </div>
+            <button class="btn btn-primary" id="addMarkingBtn">+ Add markings</button>
+          </div>
+          <div class="grid grid-4" id="salesStats"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head"><h2>Marking register</h2></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Block</th><th>Choice</th><th>Size</th>
+                    <th class="num">CBM</th><th class="num">Rate</th>
+                    <th class="num">Gross</th><th class="num">GST%</th><th class="num">GST</th><th class="num">Total</th>
+                    <th>Load</th>
+                  </tr>
+                </thead>
+                <tbody id="markingTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- CUSTOMERS -->
+        <section class="page" id="page-customers">
+          <div class="page-head">
+            <div>
+              <h1>Customers</h1>
+              <p>Customer markings, receipts &amp; balances for this quarry.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost" type="button" id="exportCustomersBtn">Export</button>
+              <button class="btn btn-primary" id="addCustomerBtn">+ Add customer</button>
+            </div>
+          </div>
+          <div class="grid grid-4" id="customerStats"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>All customers</h2>
+              <div class="filters">
+                <select id="customerFilter">
+                  <option value="all">All</option>
+                  <option value="pending">With balance</option>
+                  <option value="zero">Settled</option>
+                </select>
+                <select id="customerSort">
+                  <option value="name">Sort: Name</option>
+                  <option value="bal-desc">Sort: Balance high</option>
+                  <option value="bal-asc">Sort: Balance low</option>
+                </select>
+                <select id="customerPageSize">
+                  <option value="10">10 / page</option>
+                  <option value="25">25 / page</option>
+                  <option value="50">50 / page</option>
+                </select>
+                <input type="search" id="customerSearch" placeholder="Search name / phone / GSTIN…" />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>GSTIN</th>
+                    <th>State</th>
+                    <th class="num">Balance</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="customerTable"></tbody>
+              </table>
+            </div>
+            <div class="pager" id="customerPager"></div>
+          </div>
+        </section>
+
+        <!-- CUSTOMER DETAIL -->
+        <section class="page" id="page-customerdetail">
+          <div class="page-head">
+            <div>
+              <button type="button" class="btn btn-ghost btn-sm" id="customerDetailBack" style="margin-bottom:8px">← Back to customers</button>
+              <h1 id="customerDetailTitle">Customer</h1>
+              <p id="customerDetailSub">Profile, markings &amp; receipts</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <div class="party-bal-card" id="customerDetailBal"></div>
+              <button type="button" class="btn btn-ghost" id="customerDetailExcel">Excel</button>
+              <button type="button" class="btn btn-ghost" id="customerDetailPdf">PDF</button>
+              <button type="button" class="btn btn-primary" id="customerDetailEditBtn">Edit</button>
+              <button type="button" class="btn btn-ghost" id="customerDetailDeleteBtn">Delete</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-body" id="customerDetailProfile" style="padding:0"></div>
+          </div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>Transactions</h2>
+              <input type="search" id="customerTxnSearch" placeholder="Search…" />
+            </div>
+            <div class="grid grid-4" id="customerTxnStats" style="padding:10px 12px 0"></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th><th>Date</th><th>Comment</th>
+                    <th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th>
+                  </tr>
+                </thead>
+                <tbody id="customerTxnTable"></tbody>
+              </table>
+            </div>
+            <p style="padding:10px 14px;margin:0;color:var(--muted);font-size:.8rem">Marking / receipt = Credit · Payment out = Debit · Balance Cr = receivable</p>
+          </div>
+        </section>
+
+        <!-- VENDORS -->
+        <section class="page" id="page-vendors">
+          <div class="page-head">
+            <div>
+              <h1>Vendors</h1>
+              <p>Vendor bills, payments &amp; pending for this quarry.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost" type="button" id="exportVendorsBtn">Export</button>
+              <button class="btn btn-primary" id="addVendorBtn">+ Add vendor</button>
+            </div>
+          </div>
+          <div class="grid grid-4" id="vendorStats"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>All vendors</h2>
+              <div class="filters">
+                <select id="vendorFilter">
+                  <option value="all">All</option>
+                  <option value="pending">Pending</option>
+                  <option value="advance">Advance</option>
+                  <option value="zero">Settled</option>
+                </select>
+                <select id="vendorSort">
+                  <option value="name">Sort: Name</option>
+                  <option value="bal-desc">Sort: Pending high</option>
+                  <option value="bal-asc">Sort: Pending low</option>
+                </select>
+                <select id="vendorPageSize">
+                  <option value="10">10 / page</option>
+                  <option value="25">25 / page</option>
+                  <option value="50">50 / page</option>
+                </select>
+                <input type="search" id="vendorSearch" placeholder="Search name / phone / GSTIN…" />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>GSTIN</th>
+                    <th>State</th>
+                    <th class="num">Pending</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="vendorTable"></tbody>
+              </table>
+            </div>
+            <div class="pager" id="vendorPager"></div>
+          </div>
+        </section>
+
+        <!-- VENDOR DETAIL -->
+        <section class="page" id="page-vendordetail">
+          <div class="page-head">
+            <div>
+              <button type="button" class="btn btn-ghost btn-sm" id="vendorDetailBack" style="margin-bottom:8px">← Back to vendors</button>
+              <h1 id="vendorDetailTitle">Vendor</h1>
+              <p id="vendorDetailSub">Profile, bills &amp; payments</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <div class="party-bal-card" id="vendorDetailBal"></div>
+              <button type="button" class="btn btn-ghost" id="vendorBillBtn">+ Bill</button>
+              <button type="button" class="btn btn-primary" id="vendorPayBtn">+ Payment</button>
+              <button type="button" class="btn btn-ghost" id="vendorDetailExcel">Excel</button>
+              <button type="button" class="btn btn-ghost" id="vendorDetailPdf">PDF</button>
+              <button type="button" class="btn btn-primary" id="vendorDetailEditBtn">Edit</button>
+              <button type="button" class="btn btn-ghost" id="vendorDetailDeleteBtn">Delete</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-body" id="vendorDetailProfile" style="padding:0"></div>
+          </div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>Transactions</h2>
+              <input type="search" id="vendorTxnSearch" placeholder="Search…" />
+            </div>
+            <div class="grid grid-4" id="vendorTxnStats" style="padding:10px 12px 0"></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th><th>Date</th><th>Comment</th>
+                    <th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th>
+                  </tr>
+                </thead>
+                <tbody id="vendorTxnTable"></tbody>
+              </table>
+            </div>
+            <p style="padding:10px 14px;margin:0;color:var(--muted);font-size:.8rem">Bill / rent = Credit · Payment = Debit · Balance Pending = what you owe</p>
+          </div>
+        </section>
+
+        </section>
+
+        <!-- LOAN DETAIL -->
+        <section class="page" id="page-loandetail">
+          <div class="page-head">
+            <div>
+              <button type="button" class="btn btn-ghost btn-sm" id="loanDetailBack" style="margin-bottom:8px">← Back to Finance / Loan</button>
+              <h1 id="loanDetailTitle">Loan</h1>
+              <p id="loanDetailSub">EMI schedule &amp; payment history</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <div class="party-bal-card" id="loanDetailBal"></div>
+              <button type="button" class="btn btn-primary" id="loanDetailPayBtn">Mark paid</button>
+              <button type="button" class="btn btn-ghost" id="loanDetailExcel">Excel</button>
+              <button type="button" class="btn btn-primary" id="loanDetailEditBtn">Edit</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-body" id="loanDetailProfile" style="padding:0"></div>
+          </div>
+          <div class="grid grid-4" id="loanDetailStats" style="margin-top:12px"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>Transactions</h2>
+              <input type="search" id="loanTxnSearch" placeholder="Search…" />
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th><th>Date</th><th>Month</th><th>Comment</th>
+                    <th class="num">Debit</th><th class="num">Credit</th><th class="num">Total paid</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="loanTxnTable"></tbody>
+              </table>
+            </div>
+            <p style="padding:10px 14px;margin:0;color:var(--muted);font-size:.8rem">
+              Each EMI payment posts Debit in Purchase &amp; Expense (Finance / EMI). Total paid is running sum of EMIs.
+            </p>
+          </div>
+        </section>
+
+        <!-- FINANCE / LOAN -->
+        <section class="page" id="page-finance">
+          <div class="page-head">
+            <div>
+              <h1>Finance / Loan</h1>
+              <p>Vehicle &amp; loan EMI due board (from Sriram Finance due chat).</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost" type="button" id="exportFinanceBtn">Export</button>
+              <button class="btn btn-primary" type="button" id="addLoanBtn">+ Add loan</button>
+            </div>
+          </div>
+          <div class="grid grid-4" id="financeStats"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>EMI due board</h2>
+              <div class="filters">
+                <select id="financeMonth" title="Payment month"></select>
+                <select id="financeFilter">
+                  <option value="all">All</option>
+                  <option value="due">Due / soon</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="paid">Paid this month</option>
+                </select>
+                <input type="search" id="financeSearch" placeholder="Search vehicle / name / bank…" />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="num">#</th>
+                    <th>Vehicle / asset</th>
+                    <th>Name</th>
+                    <th>Loan number</th>
+                    <th class="num">Inform</th>
+                    <th class="num">Due date</th>
+                    <th>Bank</th>
+                    <th class="num">Due amount</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="financeTable"></tbody>
+              </table>
+            </div>
+            <p style="padding:10px 14px;margin:0;color:var(--muted);font-size:.8rem">
+              Inform = remind this many days before due day · Mark paid posts <strong style="color:var(--text)">Finance / EMI</strong> debit in Purchase &amp; Expense for the active quarry.
+            </p>
+          </div>
+        </section>
+
+        <!-- MONTHLY GIFT -->
+        <section class="page" id="page-gift">
+          <div class="page-head">
+            <div>
+              <h1>Monthly Gift</h1>
+              <p>Quarry every-month gift list (from Sriram Finance · due day 7).</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost" type="button" id="exportGiftBtn">Export</button>
+              <button class="btn btn-primary" type="button" id="addGiftBtn">+ Add gift</button>
+            </div>
+          </div>
+          <div class="grid grid-4" id="giftStats"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>Gift board</h2>
+              <div class="filters">
+                <select id="giftMonth" title="Payment month"></select>
+                <select id="giftFilter">
+                  <option value="all">All</option>
+                  <option value="unpaid">Unpaid</option>
+                  <option value="paid">Paid this month</option>
+                </select>
+                <input type="search" id="giftSearch" placeholder="Search place / office…" />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="num">#</th>
+                    <th>Place</th>
+                    <th>Office / person</th>
+                    <th class="num">Due day</th>
+                    <th class="num">Amount</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="giftTable"></tbody>
+              </table>
+            </div>
+            <p style="padding:10px 14px;margin:0;color:var(--muted);font-size:.8rem">
+              Mark paid posts <strong style="color:var(--text)">Monthly Gift</strong> debit in Purchase &amp; Expense for the active quarry.
+            </p>
+          </div>
+        </section>
+
+        <!-- ROYALTY -->
+        <section class="page" id="page-royalty">
+          <div class="page-head">
+            <div>
+              <h1>Royalty</h1>
+              <p>Auto from marking CBM × royalty rate for this quarry.</p>
+            </div>
+          </div>
+          <div class="grid grid-4" id="royaltyStats"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head"><h2>Royalty entries</h2></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Date</th><th>Comment</th><th class="num">CBM</th><th class="num">Rate</th><th class="num">Amount</th></tr>
+                </thead>
+                <tbody id="royaltyTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- MACHINERY -->
+        <section class="page" id="page-machinery">
+          <div class="page-head">
+            <div>
+              <h1>Machinery</h1>
+              <p>Rented machines · month readings (hours / days / diesel).</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost" id="addMachineBtn">+ Machine</button>
+              <button class="btn btn-primary" id="addMachineReadingBtn">+ Add reading</button>
+            </div>
+          </div>
+          <div class="tabs" id="machTabs">
+            <button class="tab active" data-mt="readings">Readings</button>
+            <button class="tab" data-mt="machines">Machines</button>
+          </div>
+
+          <div id="mach-readings" class="mach-tab">
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Readings</h2>
+                <div class="filters" id="machReadingFilters" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                  <select id="machViewMode">
+                    <option value="month">Month</option>
+                    <option value="all">All readings</option>
+                    <option value="range">Custom dates</option>
+                  </select>
+                  <select id="machMonth"></select>
+                  <span id="machRangeWrap" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
+                    <input type="date" id="machFrom" title="From" />
+                    <span style="color:var(--muted);font-size:.8rem">to</span>
+                    <input type="date" id="machTo" title="To" />
+                  </span>
+                </div>
+              </div>
+              <div class="grid grid-4" id="machReadingStats" style="padding:12px 14px 0"></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr id="machReadingHead">
+                      <th>Month</th><th>Machine</th><th>Type</th><th>Vendor</th>
+                      <th class="num">Start</th><th class="num">Close</th><th class="num">Hours</th>
+                      <th class="num">Days</th><th class="num">Diesel</th><th class="num">L/Hr</th>
+                      <th class="num">Rent</th>
+                    </tr>
+                  </thead>
+                  <tbody id="machReadingTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="mach-machines" class="mach-tab" style="display:none">
+            <div class="panel">
+              <div class="panel-head"><h2>Machine master</h2></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th><th>Type</th><th>Vendor</th>
+                      <th class="num">Default month rent</th><th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="machMasterTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- MASTERS -->
+        <section class="page" id="page-masters">
+          <div class="page-head">
+            <div>
+              <h1>Masters</h1>
+              <p>Quarries and expense categories — test multi-quarry isolation.</p>
+            </div>
+          </div>
+          <div class="tabs" id="masterTabs">
+            <button class="tab active" data-mtab="quarries">Quarries</button>
+            <button class="tab" data-mtab="heads">Expense categories</button>
+          </div>
+          <div id="mtab-quarries" class="mtab">
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Quarry list</h2>
+                <button class="btn btn-ghost btn-sm" id="addQuarryBtn">+ Add quarry</button>
+              </div>
+              <div class="panel-body" id="quarryMasterList"></div>
+            </div>
+          </div>
+          <div id="mtab-heads" class="mtab" style="display:none">
+            <div class="panel">
+              <div class="panel-head"><h2>Expense categories (company shared)</h2></div>
+              <div class="panel-body" id="headsList"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- REPORTS -->
+        <section class="page" id="page-reports">
+          <div class="page-head">
+            <div>
+              <h1>Reports / P&L</h1>
+              <p>Indicative year P&amp;L for the selected quarry (marking sales − costs).</p>
+            </div>
+            <div class="filters">
+              <select id="reportYear" title="Financial year"></select>
+              <span class="context-pill" id="reportPill">—</span>
+            </div>
+          </div>
+          <div class="grid grid-4" id="plCards"></div>
+
+          <div class="grid grid-2" style="margin-top:12px">
+            <div class="panel">
+              <div class="panel-head"><h2>P&amp;L statement</h2><span class="hint" id="plStmtHint">FY</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Particulars</th><th class="num">Amount</th></tr>
+                  </thead>
+                  <tbody id="plStmtTable"></tbody>
+                </table>
+              </div>
+              <p style="padding:10px 14px;margin:0;color:var(--muted);font-size:.8rem">
+                Sales use marking value (ex-GST). Vendor payments &amp; salary/labour advances are cash settlements — shown under Cash, not as P&amp;L cost.
+              </p>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h2>Cash book (FY)</h2><span class="hint">In / out</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Particulars</th><th class="num">Amount</th></tr>
+                  </thead>
+                  <tbody id="plCashTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-2" style="margin-top:12px">
+            <div class="panel">
+              <div class="panel-head"><h2>Operating costs by category</h2></div>
+              <div class="dash-chart-wrap"><canvas id="plExpenseChart" aria-label="Operating costs chart"></canvas></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h2>Cost breakdown</h2></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Category</th><th class="num">Amount</th><th class="num">%</th></tr>
+                  </thead>
+                  <tbody id="plCostTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <nav class="bottom-nav" id="bottomNav">
+      <button data-page="dashboard" class="active"><span class="ico">⌂</span>Home</button>
+      <button data-page="expenses"><span class="ico">₹</span>All</button>
+      <button data-page="staffmgmt"><span class="ico">👤</span>Staff</button>
+      <button data-page="staffatt"><span class="ico">⏱</span>Att</button>
+      <button data-page="masters"><span class="ico">⚙</span>More</button>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modal-backdrop" id="modal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">Form</h3>
+        <button class="icon-btn" id="modalClose" type="button">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
