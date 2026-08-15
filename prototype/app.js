@@ -1638,15 +1638,6 @@
   });
   document.addEventListener('click', closeSwitchers);
 
-  $('#resetDemo').addEventListener('click', () => {
-    if (confirm('Reset all prototype data to sample?')) {
-      state = syncMachVendorDebitsToCash(syncMachineLedgerFromReadings(seed()));
-      save(state);
-      toast('Demo data reset');
-      render();
-    }
-  });
-
   /* ---------- Modal ---------- */
   function openModal(title, bodyHtml, onSave, opts = {}) {
     const box = $('#modal .modal');

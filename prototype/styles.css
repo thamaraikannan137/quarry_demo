@@ -44,13 +44,13 @@ img { max-width: 100%; }
 
 /* Top bar — Azure DevOps style project switcher */
 .topbar {
-  height: auto;
+  height: var(--top-h);
   min-height: var(--top-h);
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  padding: 8px 14px;
+  flex-wrap: nowrap;
+  gap: 10px;
+  padding: 0 14px;
   background: rgba(255,255,255,.92);
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(10px);
@@ -66,7 +66,8 @@ img { max-width: 100%; }
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 7px 12px;
-  max-width: min(220px, 42vw);
+  max-width: min(280px, 42vw);
+  min-width: 0;
 }
 .brand {
   font-family: var(--font);
@@ -101,6 +102,7 @@ img { max-width: 100%; }
   top: calc(100% + 6px);
   left: 0;
   min-width: 260px;
+  max-width: min(320px, calc(100vw - 16px));
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -364,8 +366,8 @@ img { max-width: 100%; }
   display: grid;
   gap: 12px;
 }
-.grid-4 { grid-template-columns: 1fr; }
-.grid-3 { grid-template-columns: 1fr; }
+.grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid-2 { grid-template-columns: 1fr; }
 
 .dash-chart-wrap {
@@ -394,6 +396,7 @@ img { max-width: 100%; }
   border-radius: var(--radius);
   padding: 14px;
   box-shadow: var(--shadow);
+  min-width: 0;
 }
 .card h3 {
   font-size: .8rem;
@@ -1669,6 +1672,7 @@ button.staff-att-day {
 }
 
 @media (min-width: 860px) {
+  #menuToggle { display: none; }
   .nav { display: flex; }
   .bottom-nav { display: none; }
   .main { padding: 22px 24px; padding-bottom: 24px; }
@@ -1735,7 +1739,10 @@ button.staff-att-day {
     min-height: 42px;
     width: auto;
   }
-  .stat { font-size: 1.2rem; }
+  .stat { font-size: 1.05rem; }
+  .card { padding: 10px 12px; }
+  .card h3 { font-size: .7rem; margin-bottom: 4px; }
+  .card .hint { font-size: .72rem; }
   .num { font-size: .88rem; }
   table { font-size: .84rem; }
   td, th { padding: 10px 8px; }
@@ -1763,8 +1770,63 @@ button.staff-att-day {
     font-size: .75rem;
   }
   .att-table .staff-col { min-width: 110px; font-size: .82rem; }
-  .switcher-btn { max-width: min(160px, 38vw); }
-  .brand { font-size: .92rem; }
+  .topbar {
+    height: calc(var(--top-h) + env(safe-area-inset-top));
+    min-height: calc(var(--top-h) + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
+    gap: 6px;
+  }
+  #menuToggle,
+  .top-actions .icon-btn {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+  }
+  .brand {
+    font-size: .88rem;
+    flex-shrink: 0;
+  }
+  .switcher {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .switcher-btn {
+    width: 100%;
+    max-width: none;
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  .switcher-btn > div { min-width: 0; flex: 1; }
+  .switcher-btn small { display: none; }
+  .switcher-btn strong { font-size: .82rem; }
+  .switcher-menu {
+    min-width: min(280px, calc(100vw - 16px));
+    left: 0;
+    right: auto;
+  }
+  .top-actions {
+    margin-left: 0;
+    flex-shrink: 0;
+    gap: 4px;
+  }
+  .user-chip {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+    border-radius: 10px;
+  }
+  .user-chip span { display: none; }
+  .nav {
+    top: calc(var(--top-h) + env(safe-area-inset-top));
+    height: calc(100vh - var(--top-h) - env(safe-area-inset-top));
+    width: min(var(--nav-w), calc(100vw - 40px));
+    box-shadow: 8px 0 28px rgba(30, 41, 51, .14);
+  }
+}
+@media (max-width: 400px) {
+  .brand span { display: none; }
 }
 
 /* ---- Vyapar-style Proforma Invoice editor ---- */
