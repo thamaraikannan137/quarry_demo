@@ -1,0 +1,8 @@
+# Source / reference files (Excel, docs, etc.)
+/ref/
+
+# Excel lock files
+~$*
+
+# macOS
+.DS_Store

@@ -22,7 +22,142 @@
     'Other',
   ];
 
+  const COMPANY = {
+    name: 'Arun Granites',
+    gstin: '33ALPPA8100P1ZO',
+    ieCode: 'ALPPA8100P',
+    state: 'Tamil Nadu',
+    address: 'No.115/4, Plot No.A-6, Kumar Nagar, Melur — 625106, Madurai Dist, Tamil Nadu',
+    phone: '',
+    email: '',
+    banks: 'CUB Melur · TMB Melur',
+  };
+
+  const DEFAULT_CBM_RATES = { I: 18000, II: 16000, III: 14000, Mix: 15000 };
+
+  function defaultBanks() {
+    return [
+      {
+        id: 'bk_cub',
+        name: 'City Union Bank',
+        branch: 'Melur',
+        acNo: '510909010012345',
+        ifsc: 'CIUB0000123',
+        holder: 'Arun Granites',
+        primary: true,
+      },
+      {
+        id: 'bk_tmb',
+        name: 'Tamilnad Mercantile Bank',
+        branch: 'Melur',
+        acNo: '123100050012345',
+        ifsc: 'TMBL0000456',
+        holder: 'Arun Granites',
+        primary: false,
+      },
+    ];
+  }
+
+  function defaultQuarryRates(overrides = {}) {
+    return {
+      active: true,
+      gstPct: 18,
+      royaltyRate: 2500,
+      slabRate: 92,
+      cbmRates: { ...DEFAULT_CBM_RATES },
+      ...overrides,
+      cbmRates: { ...DEFAULT_CBM_RATES, ...(overrides.cbmRates || {}) },
+    };
+  }
+
+  const PI_UNITS = ['NONE', 'CBM', 'SQF', 'NOS', 'TON'];
+  const PI_TAX = ['0', '5', '12', '18', '28'];
+  const INDIA_STATES = [
+    'Tamil Nadu',
+    'Andhra Pradesh',
+    'Karnataka',
+    'Kerala',
+    'Telangana',
+    'Puducherry',
+    'Maharashtra',
+    'Gujarat',
+    'Rajasthan',
+    'Madhya Pradesh',
+    'Uttar Pradesh',
+    'Delhi',
+    'West Bengal',
+    'Odisha',
+    'Bihar',
+    'Jharkhand',
+    'Chhattisgarh',
+    'Punjab',
+    'Haryana',
+    'Goa',
+    'Other',
+  ];
+
   /** Indian FY Apr–Mar → "2025-26" */
+  const SESSION_KEY = 'arun_quarry_session_v1';
+
+  function defaultUsers(q1, q2) {
+    return [
+      {
+        id: 'u_owner',
+        name: 'B. Arun',
+        username: 'owner',
+        password: 'owner123',
+        role: 'Owner',
+        quarryIds: ['*'],
+        lastQuarryId: q1,
+        active: true,
+      },
+      {
+        id: 'u_acc',
+        name: 'Thalapathi',
+        username: 'accounts',
+        password: 'acc123',
+        role: 'Accountant',
+        quarryIds: [q1, q2],
+        lastQuarryId: q1,
+        active: true,
+      },
+      {
+        id: 'u_chitha',
+        name: 'Chithanavasal office',
+        username: 'chitha',
+        password: 'chitha123',
+        role: 'Accountant',
+        quarryIds: [q1],
+        lastQuarryId: q1,
+        active: true,
+      },
+      {
+        id: 'u_view',
+        name: 'Office Viewer',
+        username: 'view',
+        password: 'view123',
+        role: 'Viewer',
+        quarryIds: [q1],
+        lastQuarryId: q1,
+        active: true,
+      },
+    ];
+  }
+
+  function ensureMastersDefaults(s) {
+    if (!s.company) s.company = { ...COMPANY };
+    else s.company = { ...COMPANY, ...s.company };
+    if (!Array.isArray(s.banks) || !s.banks.length) s.banks = defaultBanks();
+    (s.quarries || []).forEach((q) => {
+      if (q.active == null) q.active = true;
+      if (q.gstPct == null) q.gstPct = Number(s.gstRate) || 18;
+      if (q.royaltyRate == null) q.royaltyRate = Number(s.royaltyRate) || 2500;
+      if (q.slabRate == null) q.slabRate = 92;
+      q.cbmRates = { ...DEFAULT_CBM_RATES, ...(q.cbmRates || {}) };
+    });
+    return s;
+  }
+
   function fyFromDate(dateStr) {
     if (!dateStr) return null;
     const [y, m] = dateStr.split('-').map(Number);
@@ -34,13 +169,27 @@
   }
 
   function seed() {
-    const q1 = { id: 'q_chitha', name: 'Chithanavasal', code: 'CHITHA', place: 'Illuppur / Pudukkottai' };
-    const q2 = { id: 'q_ariyur', name: 'Ariyur', code: 'ARIYUR', place: 'Madurai Dist' };
+    const q1 = {
+      id: 'q_chitha',
+      name: 'Chithanavasal',
+      code: 'CHITHA',
+      place: 'Illuppur / Pudukkottai',
+      ...defaultQuarryRates(),
+    };
+    const q2 = {
+      id: 'q_ariyur',
+      name: 'Ariyur',
+      code: 'ARIYUR',
+      place: 'Madurai Dist',
+      ...defaultQuarryRates({ slabRate: 90, cbmRates: { I: 17000, II: 15000, III: 13000, Mix: 14500 } }),
+    };
     const s = {
       activeQuarryId: q1.id,
       activeYear: '2026-27',
       years: ['2024-25', '2025-26', '2026-27'],
       quarries: [q1, q2],
+      banks: defaultBanks(),
+      users: defaultUsers(q1.id, q2.id),
       parties: [
         { id: 'p1', name: 'Platinam Stone', type: 'Customer', gstin: '33AAAAA0000A1Z5' },
         { id: 'p2', name: 'Thirupathi Granites', type: 'Customer', gstin: '—' },
@@ -277,6 +426,58 @@
       ],
       royaltyRate: 2500,
       gstRate: 18,
+      company: { ...COMPANY },
+      invoices: [
+        {
+          id: 'pi1',
+          quarryId: q1.id,
+          type: 'block',
+          refNo: '1',
+          date: '2026-08-04',
+          partyId: 'p1',
+          stateOfSupply: 'Tamil Nadu',
+          priceWithTax: false,
+          lines: [
+            {
+              id: 'pil1',
+              item: 'PS-101 — Multi colour rough granite blocks 320×170×140',
+              qty: 7.616,
+              unit: 'CBM',
+              price: 18000,
+              discPct: 0,
+              discAmt: 0,
+              taxPct: 18,
+              hsn: '2516',
+              markingId: 'mk1',
+            },
+            {
+              id: 'pil2',
+              item: 'PS-102 — Multi colour rough granite blocks 300×150×120',
+              qty: 5.4,
+              unit: 'CBM',
+              price: 18000,
+              discPct: 0,
+              discAmt: 0,
+              taxPct: 18,
+              hsn: '2516',
+              markingId: 'mk2',
+            },
+          ],
+          terms:
+            '1. Payment as per agreement.\n2. Unloading at buyer’s scope.\n3. Subject to Melur jurisdiction.',
+          description: 'MATERIAL NAME — RAWSILK IVORY\nMARKED BY — MOOL SINGH\nNUMBER OF BLOCKS — 2',
+          imageData: '',
+          documentName: '',
+          documentData: '',
+          roundOff: true,
+          orderNo: '',
+          orderDate: '',
+          fob: '',
+          paymentTerms: '',
+          currency: 'INR',
+          status: 'saved',
+        },
+      ],
       // From SRIRAM FINANCE DUE CHAT.xlsx — loans only (monthly gift excluded)
       loans: [
         { id: 'ln1', vehicleNo: 'Lorry-TN88H8977', borrower: 'Sibi', loanNo: 'MELRB-2601230002', informDay: 3, dueDay: 5, bank: 'FEDRAL', emiAmount: 91144, active: true },
@@ -479,6 +680,70 @@
         ];
       }
       if (!s.giftPayments) s.giftPayments = [];
+      if (!s.company) s.company = { ...COMPANY };
+      ensureMastersDefaults(s);
+      if (!Array.isArray(s.users) || !s.users.length) {
+        const q1 = s.quarries?.[0]?.id;
+        const q2 = s.quarries?.[1]?.id || q1;
+        s.users = q1 ? defaultUsers(q1, q2) : [];
+      }
+      if (!Array.isArray(s.invoices)) {
+        const qid = s.activeQuarryId || s.quarries?.[0]?.id;
+        s.invoices = qid
+          ? [
+              {
+                id: 'pi1',
+                quarryId: qid,
+                type: 'block',
+                refNo: '1',
+                date: '2026-08-04',
+                partyId: 'p1',
+                stateOfSupply: 'Tamil Nadu',
+                priceWithTax: false,
+                lines: [
+                  {
+                    id: 'pil1',
+                    item: 'PS-101 — Multi colour rough granite blocks 320×170×140',
+                    qty: 7.616,
+                    unit: 'CBM',
+                    price: 18000,
+                    discPct: 0,
+                    discAmt: 0,
+                    taxPct: 18,
+                    hsn: '2516',
+                    markingId: 'mk1',
+                  },
+                  {
+                    id: 'pil2',
+                    item: 'PS-102 — Multi colour rough granite blocks 300×150×120',
+                    qty: 5.4,
+                    unit: 'CBM',
+                    price: 18000,
+                    discPct: 0,
+                    discAmt: 0,
+                    taxPct: 18,
+                    hsn: '2516',
+                    markingId: 'mk2',
+                  },
+                ],
+                terms:
+                  '1. Payment as per agreement.\n2. Unloading at buyer’s scope.\n3. Subject to Melur jurisdiction.',
+                description:
+                  'MATERIAL NAME — RAWSILK IVORY\nMARKED BY — MOOL SINGH\nNUMBER OF BLOCKS — 2',
+                imageData: '',
+                documentName: '',
+                documentData: '',
+                roundOff: true,
+                orderNo: '',
+                orderDate: '',
+                fob: '',
+                paymentTerms: '',
+                currency: 'INR',
+                status: 'saved',
+              },
+            ]
+          : [];
+      }
       (s.machineReadings || []).forEach((r) => {
         if (!r.date && r.month) {
           r.date = `${r.month}-${String(daysInMonth(r.month)).padStart(2, '0')}`;
@@ -560,6 +825,131 @@
   }
 
   let state = load();
+  let sessionUserId = '';
+  try {
+    sessionUserId = localStorage.getItem(SESSION_KEY) || '';
+  } catch {
+    sessionUserId = '';
+  }
+
+  function currentUser() {
+    return (state.users || []).find((u) => u.id === sessionUserId && u.active !== false) || null;
+  }
+  function userRole() {
+    return currentUser()?.role || 'Viewer';
+  }
+  function isOwner() {
+    return userRole() === 'Owner';
+  }
+  function isViewer() {
+    return userRole() === 'Viewer';
+  }
+  function canEdit() {
+    return userRole() === 'Owner' || userRole() === 'Accountant';
+  }
+  function canDeleteMasters() {
+    return isOwner();
+  }
+  function allowedQuarries() {
+    const u = currentUser();
+    if (!u || u.role === 'Owner' || (u.quarryIds || []).includes('*')) return state.quarries || [];
+    const ids = new Set(u.quarryIds || []);
+    return (state.quarries || []).filter((q) => ids.has(q.id));
+  }
+  function canOpenPage(page) {
+    if (!currentUser()) return false;
+    if (page === 'users') return isOwner();
+    if (isViewer()) return page === 'dashboard' || page === 'reports';
+    return true;
+  }
+  function quarryAccessLabel(u) {
+    if (!u) return '—';
+    if (u.role === 'Owner' || (u.quarryIds || []).includes('*')) return 'All quarries';
+    const names = (u.quarryIds || [])
+      .map((id) => state.quarries.find((q) => q.id === id)?.name || id)
+      .filter(Boolean);
+    return names.join(', ') || 'None';
+  }
+  function setSession(id) {
+    sessionUserId = id || '';
+    try {
+      if (sessionUserId) localStorage.setItem(SESSION_KEY, sessionUserId);
+      else localStorage.removeItem(SESSION_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+  function ensureAllowedQuarry() {
+    const allowed = allowedQuarries();
+    if (!allowed.length) return false;
+    if (!allowed.some((q) => q.id === state.activeQuarryId)) {
+      const u = currentUser();
+      const prefer = u?.lastQuarryId && allowed.some((q) => q.id === u.lastQuarryId) ? u.lastQuarryId : allowed[0].id;
+      state.activeQuarryId = prefer;
+      save(state);
+    }
+    return true;
+  }
+  function rememberUserQuarry(qid) {
+    const u = currentUser();
+    if (!u) return;
+    u.lastQuarryId = qid;
+    save(state);
+  }
+  function applyAccess() {
+    const u = currentUser();
+    document.body.classList.toggle('logged-out', !u);
+    document.body.classList.toggle('role-owner', u?.role === 'Owner');
+    document.body.classList.toggle('role-accountant', u?.role === 'Accountant');
+    document.body.classList.toggle('role-viewer', u?.role === 'Viewer');
+    const chip = $('#userChipName');
+    const av = $('#userAvatar');
+    if (chip) chip.textContent = u ? u.name : 'Sign in';
+    if (av) av.textContent = u ? (u.name || 'U').trim().charAt(0).toUpperCase() : '?';
+    const meta = $('#userMenuMeta');
+    if (meta) {
+      meta.innerHTML = u
+        ? `<strong>${u.name}</strong>${u.role}<br/>${quarryAccessLabel(u)}`
+        : '';
+    }
+  }
+  function showLogin() {
+    document.body.classList.add('logged-out');
+    const gate = $('#loginGate');
+    if (gate) gate.hidden = false;
+    $('#loginErr')?.setAttribute('hidden', '');
+  }
+  function hideLogin() {
+    const gate = $('#loginGate');
+    if (gate) gate.hidden = true;
+    document.body.classList.remove('logged-out');
+  }
+  function signOut() {
+    setSession('');
+    $('#userMenu')?.classList.remove('open');
+    applyAccess();
+    showLogin();
+    toast('Signed out');
+  }
+  function signIn(username, password) {
+    const uname = (username || '').trim().toLowerCase();
+    const user = (state.users || []).find(
+      (u) => u.active !== false && (u.username || '').toLowerCase() === uname && u.password === password
+    );
+    if (!user) return false;
+    setSession(user.id);
+    if (user.lastQuarryId) state.activeQuarryId = user.lastQuarryId;
+    ensureAllowedQuarry();
+    save(state);
+    hideLogin();
+    applyAccess();
+    if (!(location.hash || '').replace(/^#/, '') || !canOpenPage((location.hash || '').replace(/^#/, '').split('/')[0])) {
+      history.replaceState(null, '', isViewer() ? '#dashboard' : '#dashboard');
+    }
+    applyRoute();
+    toast('Signed in · ' + user.name + ' (' + user.role + ')');
+    return true;
+  }
 
   function activeQuarry() {
     return state.quarries.find((q) => q.id === state.activeQuarryId) || state.quarries[0];
@@ -765,6 +1155,42 @@
     p.employment.sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind));
   }
 
+  function companyOf() {
+    return { ...COMPANY, ...(state.company || {}) };
+  }
+
+  function companyBanks() {
+    return Array.isArray(state.banks) && state.banks.length ? state.banks : defaultBanks();
+  }
+
+  function bankLine() {
+    const banks = companyBanks();
+    if (!banks.length) return companyOf().banks || '';
+    return banks
+      .map((b) => {
+        const name = [b.name, b.branch].filter(Boolean).join(' ');
+        const ac = b.acNo ? ` A/c ${b.acNo}` : '';
+        const ifsc = b.ifsc ? ` · ${b.ifsc}` : '';
+        return `${name}${ac}${ifsc}`;
+      })
+      .join(' · ');
+  }
+
+  function quarryRates(qid = state.activeQuarryId) {
+    const q = (state.quarries || []).find((x) => x.id === qid) || {};
+    return {
+      gstPct: q.gstPct != null ? Number(q.gstPct) : Number(state.gstRate) || 18,
+      royaltyRate: q.royaltyRate != null ? Number(q.royaltyRate) : Number(state.royaltyRate) || 2500,
+      slabRate: q.slabRate != null ? Number(q.slabRate) : 92,
+      cbmRates: { ...DEFAULT_CBM_RATES, ...(q.cbmRates || {}) },
+    };
+  }
+
+  function defaultCbmRate(choice, qid) {
+    const rates = quarryRates(qid).cbmRates;
+    return Number(rates[choice] || rates.I || 18000);
+  }
+
   function volCBM(m) {
     return (Number(m.l) * Number(m.w) * Number(m.h)) / 1e6;
   }
@@ -772,7 +1198,7 @@
   function markGstPct(m) {
     const n = Number(m?.gstPct);
     if (Number.isFinite(n) && n >= 0) return n;
-    return Number(state.gstRate) || 18;
+    return quarryRates(m?.quarryId || state.activeQuarryId).gstPct;
   }
 
   function markGross(m) {
@@ -800,7 +1226,9 @@
   let selectedGangId = null;
   let selectedLoanId = null;
   let selectedSaleId = null;
+  let selectedPiId = null;
   let saleTab = 'sales'; // sales | payments
+  let importRows = [];
   let staffProfileExpanded = false;
   let staffDetailTab = 'txns';
   let staffDetailTxnScope = 'overall'; // overall | month
@@ -818,31 +1246,34 @@
 
   function parseHash() {
     const raw = (location.hash || '').replace(/^#/, '').trim();
-    if (!raw) return { page: 'dashboard', staffId: null, gangId: null, partyId: null, loanId: null, saleId: null };
+    if (!raw) return { page: 'dashboard', staffId: null, gangId: null, partyId: null, loanId: null, saleId: null, piId: null };
     const parts = raw.split('/').filter(Boolean);
     const head = parts[0] || 'dashboard';
     if (head === 'staff' && parts[1]) {
-      return { page: 'staffdetail', staffId: parts[1], gangId: null, partyId: null, loanId: null, saleId: null };
+      return { page: 'staffdetail', staffId: parts[1], gangId: null, partyId: null, loanId: null, saleId: null, piId: null };
     }
     if (head === 'gang' && parts[1]) {
-      return { page: 'gangdetail', staffId: null, gangId: parts[1], partyId: null, loanId: null, saleId: null };
+      return { page: 'gangdetail', staffId: null, gangId: parts[1], partyId: null, loanId: null, saleId: null, piId: null };
     }
     if (head === 'customer' && parts[1]) {
-      return { page: 'customerdetail', staffId: null, gangId: null, partyId: parts[1], loanId: null, saleId: null };
+      return { page: 'customerdetail', staffId: null, gangId: null, partyId: parts[1], loanId: null, saleId: null, piId: null };
     }
     if (head === 'vendor' && parts[1]) {
-      return { page: 'vendordetail', staffId: null, gangId: null, partyId: parts[1], loanId: null, saleId: null };
+      return { page: 'vendordetail', staffId: null, gangId: null, partyId: parts[1], loanId: null, saleId: null, piId: null };
     }
     if (head === 'loan' && parts[1]) {
-      return { page: 'loandetail', staffId: null, gangId: null, partyId: null, loanId: parts[1], saleId: null };
+      return { page: 'loandetail', staffId: null, gangId: null, partyId: null, loanId: parts[1], saleId: null, piId: null };
     }
     if (head === 'invoice' && parts[1]) {
-      return { page: 'saledetail', staffId: null, gangId: null, partyId: null, loanId: null, saleId: parts[1] };
+      return { page: 'saledetail', staffId: null, gangId: null, partyId: null, loanId: null, saleId: parts[1], piId: null };
+    }
+    if (head === 'pi') {
+      return { page: 'pieditor', staffId: null, gangId: null, partyId: null, loanId: null, saleId: null, piId: parts[1] || 'new' };
     }
     if (head === 'parties') {
-      return { page: 'customers', staffId: null, gangId: null, partyId: null, loanId: null, saleId: null };
+      return { page: 'customers', staffId: null, gangId: null, partyId: null, loanId: null, saleId: null, piId: null };
     }
-    return { page: head, staffId: null, gangId: null, partyId: null, loanId: null, saleId: null };
+    return { page: head, staffId: null, gangId: null, partyId: null, loanId: null, saleId: null, piId: null };
   }
 
   function routeHash(page, opts = {}) {
@@ -852,16 +1283,24 @@
     if ((page === 'vendor' || page === 'vendordetail') && opts.partyId) return `vendor/${opts.partyId}`;
     if ((page === 'loan' || page === 'loandetail') && opts.loanId) return `loan/${opts.loanId}`;
     if ((page === 'invoice' || page === 'saledetail') && opts.saleId) return `invoice/${opts.saleId}`;
+    if (page === 'pieditor') return opts.piId ? `pi/${opts.piId}` : 'pi/new';
     if (page === 'staffdetail' || page === 'gangdetail') return 'staffmgmt';
     if (page === 'customerdetail') return 'customers';
     if (page === 'vendordetail') return 'vendors';
     if (page === 'loandetail') return 'finance';
     if (page === 'saledetail') return 'sale';
+    if (page === 'pieditor') return 'invoices';
     return page;
   }
 
   function applyRoute() {
-    let { page, staffId, gangId, partyId, loanId, saleId } = parseHash();
+    if (!currentUser()) {
+      showLogin();
+      return;
+    }
+    hideLogin();
+    ensureAllowedQuarry();
+    let { page, staffId, gangId, partyId, loanId, saleId, piId } = parseHash();
     if (page === 'parties') {
       history.replaceState(null, '', '#customers');
       page = 'customers';
@@ -885,6 +1324,7 @@
       selectedVendorId = null;
       selectedLoanId = null;
       selectedSaleId = null;
+      selectedPiId = null;
       if (!selectedStaffMgmtId) {
         history.replaceState(null, '', '#staffmgmt');
         page = 'staffmgmt';
@@ -901,6 +1341,7 @@
       selectedVendorId = null;
       selectedLoanId = null;
       selectedSaleId = null;
+      selectedPiId = null;
       if (!selectedGangId) {
         history.replaceState(null, '', '#staffmgmt');
         page = 'staffmgmt';
@@ -919,6 +1360,7 @@
       selectedGangId = null;
       selectedLoanId = null;
       selectedSaleId = null;
+      selectedPiId = null;
       if (!selectedCustomerId) {
         history.replaceState(null, '', '#customers');
         page = 'customers';
@@ -933,6 +1375,7 @@
       selectedGangId = null;
       selectedLoanId = null;
       selectedSaleId = null;
+      selectedPiId = null;
       if (!selectedVendorId) {
         history.replaceState(null, '', '#vendors');
         page = 'vendors';
@@ -945,6 +1388,7 @@
       selectedCustomerId = null;
       selectedVendorId = null;
       selectedSaleId = null;
+      selectedPiId = null;
       if (!selectedLoanId) {
         history.replaceState(null, '', '#finance');
         page = 'finance';
@@ -957,15 +1401,35 @@
       selectedCustomerId = null;
       selectedVendorId = null;
       selectedLoanId = null;
+      selectedPiId = null;
       if (!selectedSaleId) {
         history.replaceState(null, '', '#sale');
         page = 'sale';
+      }
+    } else if (page === 'pieditor') {
+      const next =
+        !piId || piId === 'new'
+          ? 'new'
+          : (state.invoices || []).some((inv) => inv.id === piId)
+            ? piId
+            : null;
+      selectedPiId = next;
+      selectedStaffMgmtId = null;
+      selectedGangId = null;
+      selectedCustomerId = null;
+      selectedVendorId = null;
+      selectedLoanId = null;
+      selectedSaleId = null;
+      if (!selectedPiId) {
+        history.replaceState(null, '', '#invoices');
+        page = 'invoices';
       }
     } else {
       selectedStaffMgmtId = null;
       selectedGangId = null;
       selectedLoanId = null;
       selectedSaleId = null;
+      selectedPiId = null;
       if (page !== 'customers') selectedCustomerId = null;
       if (page !== 'vendors') selectedVendorId = null;
       staffProfileExpanded = false;
@@ -980,6 +1444,11 @@
         history.replaceState(null, '', '#dashboard');
       }
     }
+    if (!canOpenPage(page)) {
+      page = 'dashboard';
+      history.replaceState(null, '', '#dashboard');
+      toast(isViewer() ? 'Viewer can open Dashboard & P&L only' : 'No access to that screen');
+    }
     $$('.page').forEach((p) => p.classList.toggle('active', p.id === 'page-' + page));
     $$('.nav-item, #bottomNav button').forEach((b) => {
       const navPage = b.dataset.page;
@@ -990,7 +1459,8 @@
           (page === 'customerdetail' && navPage === 'customers') ||
           (page === 'vendordetail' && navPage === 'vendors') ||
           (page === 'loandetail' && navPage === 'finance') ||
-          (page === 'saledetail' && navPage === 'sale')
+          (page === 'saledetail' && navPage === 'sale') ||
+          (page === 'pieditor' && navPage === 'invoices')
       );
     });
     syncNavSections(page);
@@ -1092,13 +1562,15 @@
   /* ---------- Quarry switcher (header) ---------- */
   function closeSwitchers() {
     $('#quarrySwitcher')?.classList.remove('open');
+    $('#userMenu')?.classList.remove('open');
   }
 
   function renderSwitcher() {
     const q = activeQuarry();
-    $('#quarryLabel').textContent = q.name;
+    $('#quarryLabel').textContent = q?.name || '—';
     const menu = $('#quarryMenu');
-    menu.innerHTML = state.quarries
+    const list = allowedQuarries();
+    menu.innerHTML = list
       .map(
         (x) => `
       <button class="switcher-item ${x.id === q.id ? 'active' : ''}" data-qid="${x.id}">
@@ -1110,6 +1582,7 @@
     $$('.switcher-item', menu).forEach((item) => {
       item.addEventListener('click', () => {
         state.activeQuarryId = item.dataset.qid;
+        rememberUserQuarry(state.activeQuarryId);
         save(state);
         closeSwitchers();
         toast('Quarry: ' + activeQuarry().name);
@@ -2348,6 +2821,10 @@
   }
 
   function deletePartyPerson(partyId) {
+    if (!canDeleteMasters()) {
+      toast('Only Owner can delete masters');
+      return;
+    }
     const party = state.parties.find((p) => p.id === partyId);
     if (!party) return;
     const isVendor = isVendorParty(party);
@@ -2433,6 +2910,10 @@
   }
 
   function openExpenseVoucher(type, opts = {}) {
+    if (!canEdit()) {
+      toast('View-only login');
+      return;
+    }
     const isCredit = type === 'Credit';
     const people = activePeopleForAdvance();
     const gangs = quarryLabourAll().sort((a, b) => a.name.localeCompare(b.name) || b.fy.localeCompare(a.fy));
@@ -2773,6 +3254,7 @@
     staffadvances: { page: 1 },
     customers: { page: 1 },
     vendors: { page: 1 },
+    invoices: { page: 1 },
   };
 
   function slicePage(list, key, pageSizeSel) {
@@ -6850,7 +7332,7 @@
     const gross = marks.reduce((s, m) => s + markGross(m), 0);
     const gst = marks.reduce((s, m) => s + markGstAmt(m), 0);
     const total = gross + gst;
-    const royalty = totalCbm * state.royaltyRate;
+    const royalty = totalCbm * quarryRates().royaltyRate;
     $('#salesStats').innerHTML = `
       <div class="card"><h3>Blocks</h3><div class="stat">${marks.length}</div></div>
       <div class="card"><h3>Total CBM</h3><div class="stat">${cbm(totalCbm)}</div></div>
@@ -6932,10 +7414,11 @@
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((p) => `<option value="${p.id}">${p.name}</option>`)
       .join('');
-    const defGst = Number(state.gstRate) || 18;
+    const defGst = quarryRates().gstPct;
+    const defRate = defaultCbmRate('I');
 
     const lineRow = (defaults = {}) => {
-      const rate = defaults.rate != null ? defaults.rate : 18000;
+      const rate = defaults.rate != null ? defaults.rate : defRate;
       const l = defaults.l != null ? defaults.l : 300;
       const w = defaults.w != null ? defaults.w : 150;
       const h = defaults.h != null ? defaults.h : 120;
@@ -6965,7 +7448,7 @@
         <div class="form-grid cols-4">
           <label class="field"><span>Date</span><input type="date" id="mDate" value="${today()}" /></label>
           <label class="field"><span>Party</span><select id="mParty">${partyOpts}</select></label>
-          <label class="field"><span>Default rate / CBM</span><input type="number" id="mDefRate" value="18000" /></label>
+          <label class="field"><span>Default rate / CBM</span><input type="number" id="mDefRate" value="${defRate}" /></label>
           <label class="field"><span>Default GST %</span><input type="number" id="mDefGst" value="${defGst}" min="0" step="0.01" /></label>
         </div>
         <p style="color:var(--muted);font-size:.85rem;margin:10px 0 8px">Add all blocks for this party on this date. Empty block-no rows are skipped. Gross = CBM × rate; Total = Gross + GST.</p>
@@ -7094,6 +7577,11 @@
     const wireLine = (tr) => {
       tr.querySelectorAll('input, select').forEach((el) => el.addEventListener('input', recalcAll));
       tr.querySelectorAll('input, select').forEach((el) => el.addEventListener('change', recalcAll));
+      tr.querySelector('.m-choice')?.addEventListener('change', () => {
+        const rateEl = tr.querySelector('.m-rate');
+        if (rateEl) rateEl.value = defaultCbmRate(tr.querySelector('.m-choice').value);
+        recalcAll();
+      });
       tr.querySelector('.m-rm')?.addEventListener('click', () => {
         if ($$('#mLinesBody tr.m-line').length <= 1) {
           tr.querySelector('.m-block').value = '';
@@ -8494,13 +8982,14 @@
     const rows = marks.map((m) => {
       const p = state.parties.find((x) => x.id === m.partyId);
       const v = volCBM(m);
-      return { date: m.date, particulars: `${p?.name || ''} — ${m.blockNo}`, cbm: v, rate: state.royaltyRate, amount: v * state.royaltyRate };
+      const rate = quarryRates().royaltyRate;
+      return { date: m.date, particulars: `${p?.name || ''} — ${m.blockNo}`, cbm: v, rate, amount: v * rate };
     });
     const total = rows.reduce((s, r) => s + r.amount, 0);
     const totalC = rows.reduce((s, r) => s + r.cbm, 0);
     $('#royaltyStats').innerHTML = `
       <div class="card"><h3>CBM</h3><div class="stat">${cbm(totalC)}</div></div>
-      <div class="card"><h3>Rate</h3><div class="stat">${money(state.royaltyRate)}</div></div>
+      <div class="card"><h3>Rate</h3><div class="stat">${money(quarryRates().royaltyRate)}</div></div>
       <div class="card"><h3>Royalty due</h3><div class="stat warn">${money(total)}</div></div>
       <div class="card"><h3>Entries</h3><div class="stat">${rows.length}</div></div>`;
     $('#royaltyTable').innerHTML = rows.length
@@ -9057,30 +9546,216 @@
   $('#addMachineReadingBtn')?.addEventListener('click', openAddMachineReading);
 
   function renderMasters() {
-    $('#quarryMasterList').innerHTML = `<div class="list-compact">${state.quarries
-      .map(
-        (q) => `<div class="list-row">
-        <div><div class="t">${q.name} ${q.id === state.activeQuarryId ? '· active' : ''}</div>
-        <div class="s">${q.code} · ${q.place}</div></div>
-        <button class="btn btn-ghost btn-sm" data-switch="${q.id}">Select</button>
-      </div>`
-      )
+    const qn = activeQuarry()?.name || '—';
+    if ($('#mastersPill')) $('#mastersPill').textContent = qn;
+
+    const co = companyOf();
+    const lockCo = !isOwner();
+    const setVal = (id, v) => {
+      const el = $('#' + id);
+      if (!el) return;
+      el.value = v ?? '';
+      if (['coName', 'coGstin', 'coIe', 'coState', 'coAddr', 'coPhone', 'coEmail'].includes(id)) {
+        el.disabled = lockCo;
+      }
+    };
+    const stSel = $('#coState');
+    if (stSel && !stSel.dataset.filled) {
+      stSel.innerHTML = INDIA_STATES.map((s) => `<option value="${s}">${s}</option>`).join('');
+      stSel.dataset.filled = '1';
+    }
+    setVal('coName', co.name);
+    setVal('coGstin', co.gstin);
+    setVal('coIe', co.ieCode);
+    setVal('coState', co.state || 'Tamil Nadu');
+    setVal('coAddr', co.address);
+    setVal('coPhone', co.phone || '');
+    setVal('coEmail', co.email || '');
+
+    const banks = companyBanks();
+    if ($('#bankTable')) {
+      $('#bankTable').innerHTML = banks.length
+        ? banks
+            .map(
+              (b) => `<tr>
+                <td><strong>${b.name || '—'}</strong>${b.primary ? ' <span class="bank-primary">primary</span>' : ''}</td>
+                <td>${b.branch || '—'}</td>
+                <td>${b.acNo || '—'}</td>
+                <td>${b.ifsc || '—'}</td>
+                <td>${b.holder || '—'}</td>
+                <td>
+                  <button type="button" class="btn btn-ghost btn-sm need-owner" data-bank-edit="${b.id}">Edit</button>
+                  <button type="button" class="btn btn-ghost btn-sm need-owner" data-bank-del="${b.id}">Delete</button>
+                </td>
+              </tr>`
+            )
+            .join('')
+        : `<tr><td colspan="6"><div class="empty">No bank accounts</div></td></tr>`;
+      $$('#bankTable [data-bank-edit]').forEach((btn) =>
+        btn.addEventListener('click', () => openBankModal(companyBanks().find((x) => x.id === btn.dataset.bankEdit)))
+      );
+      $$('#bankTable [data-bank-del]').forEach((btn) =>
+        btn.addEventListener('click', () => {
+          if (!isOwner()) {
+            toast('Owner only');
+            return;
+          }
+          if (!confirm('Remove this bank account?')) return;
+          state.banks = companyBanks().filter((x) => x.id !== btn.dataset.bankDel);
+          save(state);
+          toast('Bank removed');
+          renderMasters();
+        })
+      );
+    }
+
+    const allowed = allowedQuarries();
+    $('#quarryMasterList').innerHTML = `<div class="list-compact">${allowed
+      .map((q) => {
+        const r = quarryRates(q.id);
+        return `<div class="list-row">
+        <div>
+          <div class="t">${q.name} ${q.id === state.activeQuarryId ? '· active' : ''}${q.active === false ? ' · inactive' : ''}</div>
+          <div class="s">${q.code} · ${q.place} · GST ${r.gstPct}% · Royalty ${money(r.royaltyRate)}/CBM · I ${money(r.cbmRates.I)}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-ghost btn-sm" data-switch="${q.id}">Select</button>
+          <button class="btn btn-ghost btn-sm need-owner" data-qedit="${q.id}">Edit</button>
+        </div>
+      </div>`;
+      })
       .join('')}</div>`;
-    $$('[data-switch]').forEach((b) =>
+    $$('#quarryMasterList [data-switch]').forEach((b) =>
       b.addEventListener('click', () => {
+        if (!allowedQuarries().some((q) => q.id === b.dataset.switch)) {
+          toast('No access to that quarry');
+          return;
+        }
         state.activeQuarryId = b.dataset.switch;
+        rememberUserQuarry(state.activeQuarryId);
         save(state);
         toast('Active: ' + activeQuarry().name);
         render();
       })
     );
+    $$('#quarryMasterList [data-qedit]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const q = state.quarries.find((x) => x.id === b.dataset.qedit);
+        if (q) openEditQuarry(q);
+      })
+    );
+
+    fillQuarrySelect($('#rateQuarry'), $('#rateQuarry')?.value || state.activeQuarryId);
+    fillQuarrySelect($('#impQuarry'), $('#impQuarry')?.value || state.activeQuarryId);
+    fillRateCardForm($('#rateQuarry')?.value || state.activeQuarryId);
 
     $('#headsList').innerHTML = `<div class="list-compact">${state.heads
       .map((h) => `<div class="list-row"><div class="t">${h}</div><div class="s">Shared</div></div>`)
       .join('')}</div>`;
+
+    if (importRows.length) renderImportPreview();
+  }
+
+  function fillQuarrySelect(sel, prefer) {
+    if (!sel) return;
+    const allowed = allowedQuarries();
+    const cur = prefer && allowed.some((q) => q.id === prefer) ? prefer : state.activeQuarryId;
+    sel.innerHTML = allowed.map((q) => `<option value="${q.id}">${q.name}</option>`).join('');
+    sel.value = allowed.some((q) => q.id === cur) ? cur : allowed[0]?.id || '';
+  }
+
+  function fillRateCardForm(qid) {
+    const r = quarryRates(qid);
+    if ($('#rtGst')) $('#rtGst').value = r.gstPct;
+    if ($('#rtRoy')) $('#rtRoy').value = r.royaltyRate;
+    if ($('#rtSlab')) $('#rtSlab').value = r.slabRate;
+    if ($('#rtCbmI')) $('#rtCbmI').value = r.cbmRates.I;
+    if ($('#rtCbmII')) $('#rtCbmII').value = r.cbmRates.II;
+    if ($('#rtCbmIII')) $('#rtCbmIII').value = r.cbmRates.III;
+    if ($('#rtCbmMix')) $('#rtCbmMix').value = r.cbmRates.Mix;
+  }
+
+  function openEditQuarry(q) {
+    if (!isOwner()) {
+      toast('Owner only');
+      return;
+    }
+    openModal(
+      'Edit quarry · ' + q.name,
+      `<div class="form-grid">
+        <label class="field"><span>Name</span><input id="qName" value="${(q.name || '').replace(/"/g, '&quot;')}" /></label>
+        <label class="field"><span>Code</span><input id="qCode" value="${(q.code || '').replace(/"/g, '&quot;')}" /></label>
+        <label class="field"><span>Place</span><input id="qPlace" value="${(q.place || '').replace(/"/g, '&quot;')}" /></label>
+        <label class="field" style="flex-direction:row;align-items:center;gap:8px">
+          <input type="checkbox" id="qActive" ${q.active !== false ? 'checked' : ''} /> Active
+        </label>
+      </div>`,
+      () => {
+        if (!$('#qName').value.trim()) {
+          toast('Name required');
+          return false;
+        }
+        q.name = $('#qName').value.trim();
+        q.code = ($('#qCode').value.trim() || q.name.slice(0, 6)).toUpperCase();
+        q.place = $('#qPlace').value.trim() || '—';
+        q.active = $('#qActive').checked;
+        toast('Quarry updated');
+        return true;
+      }
+    );
+  }
+
+  function openBankModal(existing) {
+    if (!isOwner()) {
+      toast('Owner only');
+      return;
+    }
+    const b = existing || {};
+    openModal(
+      existing ? 'Edit bank' : 'Add bank',
+      `<div class="form-grid cols-2">
+        <label class="field"><span>Bank name *</span><input id="bkName" value="${(b.name || '').replace(/"/g, '&quot;')}" placeholder="City Union Bank" /></label>
+        <label class="field"><span>Branch</span><input id="bkBranch" value="${(b.branch || '').replace(/"/g, '&quot;')}" placeholder="Melur" /></label>
+        <label class="field"><span>A/c no</span><input id="bkAc" value="${(b.acNo || '').replace(/"/g, '&quot;')}" /></label>
+        <label class="field"><span>IFSC</span><input id="bkIfsc" value="${(b.ifsc || '').replace(/"/g, '&quot;')}" /></label>
+        <label class="field"><span>Account holder</span><input id="bkHolder" value="${(b.holder || companyOf().name || '').replace(/"/g, '&quot;')}" /></label>
+        <label class="field" style="flex-direction:row;align-items:center;gap:8px">
+          <input type="checkbox" id="bkPrimary" ${b.primary ? 'checked' : ''} /> Primary (salary / PI)
+        </label>
+      </div>`,
+      () => {
+        const name = ($('#bkName').value || '').trim();
+        if (!name) {
+          toast('Bank name required');
+          return false;
+        }
+        if (!Array.isArray(state.banks)) state.banks = [];
+        const rec = {
+          id: b.id || 'bk_' + uid(),
+          name,
+          branch: ($('#bkBranch').value || '').trim(),
+          acNo: ($('#bkAc').value || '').trim(),
+          ifsc: ($('#bkIfsc').value || '').trim().toUpperCase(),
+          holder: ($('#bkHolder').value || '').trim() || companyOf().name,
+          primary: !!$('#bkPrimary').checked,
+        };
+        if (rec.primary) state.banks.forEach((x) => (x.primary = false));
+        if (existing) {
+          const i = state.banks.findIndex((x) => x.id === existing.id);
+          if (i >= 0) state.banks[i] = rec;
+          else state.banks.push(rec);
+        } else state.banks.push(rec);
+        toast(existing ? 'Bank updated' : 'Bank added');
+        return true;
+      }
+    );
   }
 
   $('#addQuarryBtn').addEventListener('click', () => {
+    if (!canDeleteMasters()) {
+      toast('Only Owner can add quarries');
+      return;
+    }
     openModal(
       'Add quarry',
       `<div class="form-grid">
@@ -9099,6 +9774,7 @@
           name: $('#qName').value.trim(),
           code: ($('#qCode').value.trim() || $('#qName').value.trim().slice(0, 6)).toUpperCase(),
           place: $('#qPlace').value.trim() || '—',
+          ...defaultQuarryRates(),
         });
         state.activeQuarryId = id;
         toast('Quarry created & selected (empty books)');
@@ -9112,9 +9788,679 @@
       $$('#masterTabs .tab').forEach((x) => x.classList.remove('active'));
       t.classList.add('active');
       $$('.mtab').forEach((p) => (p.style.display = 'none'));
-      $('#mtab-' + t.dataset.mtab).style.display = 'block';
+      const pane = $('#mtab-' + t.dataset.mtab);
+      if (pane) pane.style.display = 'block';
     })
   );
+
+  $('#saveCompanyBtn')?.addEventListener('click', () => {
+    if (!isOwner()) {
+      toast('Owner only');
+      return;
+    }
+    const gstin = ($('#coGstin')?.value || '').trim().toUpperCase().replace(/\s/g, '');
+    if (gstin && gstin.length !== 15) {
+      toast('GSTIN should be 15 characters');
+      return;
+    }
+    state.company = {
+      ...companyOf(),
+      name: ($('#coName')?.value || '').trim() || COMPANY.name,
+      gstin: gstin || COMPANY.gstin,
+      ieCode: ($('#coIe')?.value || '').trim().toUpperCase() || COMPANY.ieCode,
+      state: $('#coState')?.value || 'Tamil Nadu',
+      address: ($('#coAddr')?.value || '').trim() || COMPANY.address,
+      phone: ($('#coPhone')?.value || '').trim(),
+      email: ($('#coEmail')?.value || '').trim(),
+      banks: bankLine(),
+    };
+    save(state);
+    toast('Company profile saved');
+    renderMasters();
+  });
+
+  $('#addBankBtn')?.addEventListener('click', () => openBankModal());
+
+  $('#rateQuarry')?.addEventListener('change', () => fillRateCardForm($('#rateQuarry').value));
+
+  $('#saveRatesBtn')?.addEventListener('click', () => {
+    if (!canEdit()) {
+      toast('No permission to edit');
+      return;
+    }
+    const qid = $('#rateQuarry')?.value || state.activeQuarryId;
+    const q = (state.quarries || []).find((x) => x.id === qid);
+    if (!q) {
+      toast('Select a quarry');
+      return;
+    }
+    q.gstPct = Number($('#rtGst')?.value) || 0;
+    q.royaltyRate = Number($('#rtRoy')?.value) || 0;
+    q.slabRate = Number($('#rtSlab')?.value) || 0;
+    q.cbmRates = {
+      I: Number($('#rtCbmI')?.value) || 0,
+      II: Number($('#rtCbmII')?.value) || 0,
+      III: Number($('#rtCbmIII')?.value) || 0,
+      Mix: Number($('#rtCbmMix')?.value) || 0,
+    };
+    if (qid === state.activeQuarryId) {
+      state.gstRate = q.gstPct;
+      state.royaltyRate = q.royaltyRate;
+    }
+    save(state);
+    toast('Rate card saved · ' + q.name);
+    renderMasters();
+  });
+
+  const IMPORT_TEMPLATES = {
+    parties: [
+      ['Name', 'Type', 'GSTIN', 'Phone', 'State', 'Email', 'Address'],
+      ['New Buyer Granites', 'Customer', '33AAAAA0000A1Z5', '9876543210', 'Tamil Nadu', '', 'Melur'],
+      ['Local Diesel Vendor', 'Vendor', '', '9876500000', 'Tamil Nadu', '', ''],
+    ],
+    staff: [
+      ['Name', 'Category', 'Designation', 'Basic', 'DailyRate', 'JoinDate', 'Phone', 'Bank', 'Account', 'IFSC'],
+      ['Sample Incharge', 'Staff', 'Incharge', '25000', '0', '2026-04-01', '', 'CUB Melur', '', 'CIUB0000123'],
+      ['Sample Helper', 'Worker', 'Helper', '0', '700', '2026-06-01', '', '', '', ''],
+    ],
+    expenses: [
+      ['Date', 'Type', 'Category', 'Comment', 'Debit', 'Credit'],
+      ['2026-04-01', 'Debit', 'Diesel', 'Opening diesel purchase', '50000', ''],
+      ['2026-04-01', 'Credit', 'Cash Received', 'Opening cash', '', '100000'],
+    ],
+    markings: [
+      ['Date', 'Party', 'Block', 'Choice', 'L', 'W', 'H', 'Rate', 'GST', 'Load'],
+      ['2026-04-10', 'Platinam Stone', 'PS-201', 'I', '300', '150', '120', '18000', '18', 'OK'],
+    ],
+    openings: [
+      ['Date', 'Party', 'Kind', 'Amount', 'Particulars'],
+      ['2026-04-01', 'Bhuvana Explosive', 'Bill', '85000', 'Opening explosive bill'],
+      ['2026-04-01', 'Platinam Stone', 'Opening', '0', 'Buyer opening'],
+    ],
+  };
+
+  function colOf(row, aliases) {
+    const keys = Object.keys(row || {});
+    const norm = (s) =>
+      String(s || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+    for (const a of aliases) {
+      const na = norm(a);
+      const k = keys.find((key) => {
+        const nk = norm(key);
+        return nk === na || nk.includes(na) || na.includes(nk);
+      });
+      if (k != null && row[k] !== '' && row[k] != null) return row[k];
+    }
+    return '';
+  }
+
+  function numIn(v) {
+    if (v == null || v === '') return 0;
+    const n = Number(String(v).replace(/[₹,\s]/g, ''));
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function parseImportDate(v) {
+    if (!v && v !== 0) return today();
+    if (v instanceof Date && !Number.isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+    const s = String(v).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    const m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    if (m) {
+      let d = Number(m[1]);
+      let mo = Number(m[2]);
+      let y = m[3];
+      if (y.length === 2) y = '20' + y;
+      if (mo > 12 && d <= 12) {
+        const t = d;
+        d = mo;
+        mo = t;
+      }
+      return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+    const n = Number(s);
+    if (n > 20000 && n < 80000) {
+      const dt = new Date(Math.round((n - 25569) * 86400 * 1000));
+      if (!Number.isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
+    }
+    return today();
+  }
+
+  function parseCsvText(text) {
+    const rows = [];
+    let row = [];
+    let cell = '';
+    let i = 0;
+    let inQ = false;
+    const s = String(text || '').replace(/^\uFEFF/, '');
+    while (i < s.length) {
+      const ch = s[i];
+      if (inQ) {
+        if (ch === '"') {
+          if (s[i + 1] === '"') {
+            cell += '"';
+            i++;
+          } else inQ = false;
+        } else cell += ch;
+      } else if (ch === '"') inQ = true;
+      else if (ch === ',') {
+        row.push(cell);
+        cell = '';
+      } else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && s[i + 1] === '\n') i++;
+        row.push(cell);
+        cell = '';
+        if (row.some((c) => String(c).trim() !== '')) rows.push(row);
+        row = [];
+      } else cell += ch;
+      i++;
+    }
+    if (cell || row.length) {
+      row.push(cell);
+      if (row.some((c) => String(c).trim() !== '')) rows.push(row);
+    }
+    if (!rows.length) return [];
+    const headers = rows[0].map((h) => String(h).trim());
+    return rows.slice(1).map((r) => {
+      const o = {};
+      headers.forEach((h, idx) => {
+        o[h] = r[idx] != null ? r[idx] : '';
+      });
+      return o;
+    });
+  }
+
+  function parseImportFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      const name = (file.name || '').toLowerCase();
+      reader.onload = () => {
+        try {
+          if (name.endsWith('.csv') || file.type === 'text/csv') {
+            const text =
+              typeof reader.result === 'string' ? reader.result : new TextDecoder().decode(reader.result);
+            resolve(parseCsvText(text));
+            return;
+          }
+          if (!window.XLSX) {
+            reject(new Error('Excel reader not loaded — save the sheet as CSV'));
+            return;
+          }
+          const wb = window.XLSX.read(reader.result, { type: 'array', cellDates: true });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          resolve(window.XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false }));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('Could not read file'));
+      if (name.endsWith('.csv')) reader.readAsText(file);
+      else reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function renderImportPreview() {
+    const wrap = $('#impPreviewWrap');
+    const head = $('#impPreviewHead');
+    const body = $('#impPreviewBody');
+    if (!wrap || !head || !body) return;
+    if (!importRows.length) {
+      wrap.style.display = 'none';
+      return;
+    }
+    const keys = Object.keys(importRows[0] || {});
+    const sample = importRows.slice(0, 8);
+    head.innerHTML = `<tr>${keys.map((k) => `<th>${k}</th>`).join('')}</tr>`;
+    body.innerHTML = sample
+      .map((r) => `<tr>${keys.map((k) => `<td>${String(r[k] ?? '')}</td>`).join('')}</tr>`)
+      .join('');
+    wrap.style.display = '';
+    if ($('#impStatus')) {
+      $('#impStatus').textContent = `${importRows.length} row${importRows.length === 1 ? '' : 's'} ready · showing first ${sample.length}`;
+    }
+  }
+
+  function findPartyByName(name) {
+    const n = String(name || '')
+      .trim()
+      .toLowerCase();
+    if (!n) return null;
+    return (state.parties || []).find((p) => (p.name || '').toLowerCase() === n) || null;
+  }
+
+  function ensureImportedParty(name, type) {
+    let p = findPartyByName(name);
+    if (p) return p;
+    p = {
+      id: uid(),
+      name: String(name).trim(),
+      type: /vendor|supplier/i.test(type || '') ? 'Vendor' : 'Customer',
+      gstin: '—',
+    };
+    state.parties.push(p);
+    return p;
+  }
+
+  function runImport(kind, qid) {
+    const q = (state.quarries || []).find((x) => x.id === qid);
+    if (!q) {
+      toast('Select a quarry');
+      return { ok: 0, skip: 0 };
+    }
+    let ok = 0;
+    let skip = 0;
+    if (kind === 'parties') {
+      importRows.forEach((row) => {
+        const name = String(colOf(row, ['name', 'party', 'customer', 'vendor']) || '').trim();
+        if (!name) {
+          skip++;
+          return;
+        }
+        const typeRaw = String(colOf(row, ['type', 'partytype']) || 'Customer');
+        const type = /vendor|supplier/i.test(typeRaw) ? 'Vendor' : 'Customer';
+        const gstin = String(colOf(row, ['gstin', 'gst']) || '').trim() || '—';
+        let p = findPartyByName(name);
+        if (!p) {
+          p = { id: uid(), name, type, gstin };
+          state.parties.push(p);
+        }
+        p.type = type;
+        if (gstin && gstin !== '—') p.gstin = gstin;
+        p.phone = String(colOf(row, ['phone', 'mobile']) || p.phone || '').trim();
+        p.state = String(colOf(row, ['state']) || p.state || '').trim();
+        p.email = String(colOf(row, ['email']) || p.email || '').trim();
+        const addr = String(colOf(row, ['address', 'billing']) || '').trim();
+        if (addr) p.billingAddress = addr;
+        ok++;
+      });
+    } else if (kind === 'staff') {
+      if (!state.staff) state.staff = [];
+      importRows.forEach((row) => {
+        const name = String(colOf(row, ['name', 'staff', 'person']) || '').trim();
+        if (!name) {
+          skip++;
+          return;
+        }
+        const catRaw = String(colOf(row, ['category', 'type']) || 'Staff');
+        const dailyRate = numIn(colOf(row, ['dailyrate', 'dayrate', 'rate']));
+        const category = /worker|labour|labor/i.test(catRaw) || dailyRate > 0 ? 'Worker' : 'Staff';
+        const joinDate = parseImportDate(colOf(row, ['joindate', 'join', 'date']));
+        let person = state.staff.find(
+          (s) => s.quarryId === qid && (s.name || '').toLowerCase() === name.toLowerCase() && !s.exitDate
+        );
+        if (!person) {
+          person = { id: uid(), quarryId: qid, name };
+          state.staff.push(person);
+        }
+        Object.assign(person, {
+          quarryId: qid,
+          name,
+          category,
+          designation: String(colOf(row, ['designation', 'role', 'post']) || person.designation || '').trim(),
+          basic: numIn(colOf(row, ['basic', 'salary'])) || person.basic || 0,
+          dailyRate: dailyRate || person.dailyRate || 0,
+          joinDate: joinDate || person.joinDate || today(),
+          phone: String(colOf(row, ['phone', 'mobile']) || person.phone || '').trim(),
+          bankName: String(colOf(row, ['bank', 'bankname']) || person.bankName || '').trim(),
+          bankAc: String(colOf(row, ['account', 'ac', 'bankac']) || person.bankAc || '').trim(),
+          ifsc: String(colOf(row, ['ifsc']) || person.ifsc || '').trim(),
+        });
+        ok++;
+      });
+      state.staff = normalizePeople(state.staff);
+    } else if (kind === 'expenses') {
+      if (!state.expenses) state.expenses = [];
+      importRows.forEach((row) => {
+        const date = parseImportDate(colOf(row, ['date']));
+        const particulars = String(colOf(row, ['comment', 'particulars', 'narration', 'note', 'description']) || '').trim();
+        const typeRaw = String(colOf(row, ['type', 'drcr']) || '').toLowerCase();
+        let debit = numIn(colOf(row, ['debit', 'dr', 'expense', 'out']));
+        let credit = numIn(colOf(row, ['credit', 'cr', 'in', 'receipt']));
+        const amt = numIn(colOf(row, ['amount', 'amt']));
+        const isCredit = /credit|cash.?in|receipt|sale/.test(typeRaw);
+        if (!debit && !credit && amt) {
+          if (isCredit) credit = amt;
+          else debit = amt;
+        }
+        if (!debit && !credit) {
+          skip++;
+          return;
+        }
+        const type = credit && !debit ? 'Credit' : isCredit ? 'Credit' : 'Debit';
+        if (type === 'Credit' && !credit && debit) {
+          credit = debit;
+          debit = 0;
+        }
+        const head =
+          String(colOf(row, ['category', 'head', 'expensehead']) || '').trim() ||
+          (type === 'Credit' ? 'Cash Received' : 'Other');
+        const dup = state.expenses.some(
+          (e) =>
+            e.quarryId === qid &&
+            e.date === date &&
+            (e.particulars || '') === particulars &&
+            Number(e.debit || 0) === debit &&
+            Number(e.credit || 0) === credit
+        );
+        if (dup) {
+          skip++;
+          return;
+        }
+        if (!state.heads.includes(head)) state.heads.push(head);
+        state.expenses.push({
+          id: uid(),
+          quarryId: qid,
+          date,
+          type,
+          head,
+          particulars: particulars || head,
+          debit: type === 'Debit' ? debit : 0,
+          credit: type === 'Credit' ? credit : 0,
+        });
+        ok++;
+      });
+    } else if (kind === 'markings') {
+      if (!state.markings) state.markings = [];
+      const gstDefault = quarryRates(qid).gstPct;
+      importRows.forEach((row) => {
+        const partyName = String(colOf(row, ['party', 'buyer', 'customer', 'name']) || '').trim();
+        const blockNo = String(colOf(row, ['block', 'blockno', 'no']) || '').trim();
+        const l = numIn(colOf(row, ['l', 'length']));
+        const w = numIn(colOf(row, ['w', 'width']));
+        const h = numIn(colOf(row, ['h', 'height']));
+        if (!partyName || !blockNo || !l || !w || !h) {
+          skip++;
+          return;
+        }
+        const date = parseImportDate(colOf(row, ['date']));
+        const dup = state.markings.some(
+          (m) => m.quarryId === qid && m.date === date && String(m.blockNo) === blockNo
+        );
+        if (dup) {
+          skip++;
+          return;
+        }
+        const choice = String(colOf(row, ['choice', 'grade']) || 'I').trim() || 'I';
+        const rate = numIn(colOf(row, ['rate', 'price'])) || defaultCbmRate(choice, qid);
+        const gstPct = numIn(colOf(row, ['gst', 'gstpct', 'tax']));
+        const party = ensureImportedParty(partyName, 'Customer');
+        state.markings.push({
+          id: uid(),
+          quarryId: qid,
+          date,
+          partyId: party.id,
+          blockNo,
+          choice,
+          l,
+          w,
+          h,
+          rate,
+          gstPct: gstPct || gstDefault,
+          load: String(colOf(row, ['load', 'status']) || 'OK').trim() || 'OK',
+        });
+        ok++;
+      });
+    } else if (kind === 'openings') {
+      if (!state.partyLedger) state.partyLedger = [];
+      importRows.forEach((row) => {
+        const partyName = String(colOf(row, ['party', 'name', 'vendor', 'customer']) || '').trim();
+        const amount = numIn(colOf(row, ['amount', 'amt', 'opening']));
+        if (!partyName || !amount) {
+          skip++;
+          return;
+        }
+        const kindRaw = String(colOf(row, ['kind', 'type']) || 'Bill');
+        const isPay = /pay|receipt|debit/i.test(kindRaw);
+        const party = ensureImportedParty(partyName, /vendor|supplier/i.test(kindRaw) ? 'Vendor' : 'Customer');
+        const date = parseImportDate(colOf(row, ['date', 'asof']));
+        const particulars =
+          String(colOf(row, ['particulars', 'comment', 'note']) || '').trim() ||
+          (isPay ? 'Opening payment' : 'Opening bill');
+        state.partyLedger.push({
+          id: uid(),
+          quarryId: qid,
+          partyId: party.id,
+          date,
+          particulars,
+          debit: isPay ? amount : 0,
+          credit: isPay ? 0 : amount,
+          kind: isPay ? 'Payment' : 'Bill',
+        });
+        ok++;
+      });
+    }
+    save(state);
+    return { ok, skip };
+  }
+
+  $('#impTemplateBtn')?.addEventListener('click', () => {
+    const kind = $('#impKind')?.value || 'expenses';
+    const rows = IMPORT_TEMPLATES[kind];
+    if (!rows) return;
+    downloadCsv(`arun-${kind}-template.csv`, rows);
+    toast('Template downloaded');
+  });
+
+  $('#impFile')?.addEventListener('change', async (ev) => {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+    try {
+      importRows = await parseImportFile(file);
+      if (!importRows.length) {
+        toast('No data rows in file');
+        if ($('#impStatus')) $('#impStatus').textContent = 'No rows found.';
+        return;
+      }
+      renderImportPreview();
+      toast(`${importRows.length} rows loaded`);
+    } catch (err) {
+      toast(err.message || 'Could not read file');
+    }
+  });
+
+  $('#impRunBtn')?.addEventListener('click', () => {
+    if (!canEdit()) {
+      toast('No permission to import');
+      return;
+    }
+    if (!importRows.length) {
+      toast('Choose an Excel or CSV file first');
+      return;
+    }
+    const kind = $('#impKind')?.value || 'expenses';
+    const qid = $('#impQuarry')?.value || state.activeQuarryId;
+    const qname = state.quarries.find((x) => x.id === qid)?.name || 'quarry';
+    const { ok, skip } = runImport(kind, qid);
+    toast(`Imported ${ok} into ${qname}${skip ? ` · skipped ${skip}` : ''}`);
+    if ($('#impStatus')) {
+      $('#impStatus').textContent = `Imported ${ok} ${kind} into ${qname}${skip ? ` · skipped ${skip} duplicate/empty` : ''}.`;
+    }
+    importRows = [];
+    if ($('#impFile')) $('#impFile').value = '';
+    const wrap = $('#impPreviewWrap');
+    if (wrap) wrap.style.display = 'none';
+  });
+
+  function userQuarryChecksHtml(selectedIds, allQuarries) {
+    const all = allQuarries || (selectedIds || []).includes('*');
+    const ids = new Set(selectedIds || []);
+    return `<label class="field" style="flex-direction:row;align-items:center;gap:8px">
+        <input type="checkbox" id="uAllQ" ${all ? 'checked' : ''} /> All quarries
+      </label>
+      <div id="uQList" class="list-compact" style="${all ? 'opacity:.5;pointer-events:none' : ''}">
+        ${(state.quarries || [])
+          .map(
+            (q) => `<label class="list-row" style="align-items:center">
+            <div><div class="t">${q.name}</div><div class="s">${q.code} · ${q.place}</div></div>
+            <input type="checkbox" class="u-qid" data-qid="${q.id}" ${all || ids.has(q.id) ? 'checked' : ''} />
+          </label>`
+          )
+          .join('')}
+      </div>`;
+  }
+
+  function collectUserQuarries() {
+    if ($('#uAllQ')?.checked || $('#uRole')?.value === 'Owner') return ['*'];
+    return $$('.u-qid:checked').map((c) => c.dataset.qid);
+  }
+
+  function openUserModal(existing) {
+    if (!isOwner()) {
+      toast('Owner only');
+      return;
+    }
+    const u = existing || {};
+    const isNew = !existing;
+    openModal(
+      isNew ? 'Add user' : 'Edit user · ' + u.name,
+      `<div class="form-grid cols-2">
+        <label class="field"><span>Name *</span><input id="uName" value="${(u.name || '').replace(/"/g, '&quot;')}" /></label>
+        <label class="field"><span>Username *</span><input id="uUser" value="${(u.username || '').replace(/"/g, '&quot;')}" autocomplete="off" /></label>
+        <label class="field"><span>Password ${isNew ? '*' : '(leave blank to keep)'}</span><input id="uPass" type="password" autocomplete="new-password" /></label>
+        <label class="field"><span>Role</span>
+          <select id="uRole">
+            <option value="Owner" ${u.role === 'Owner' ? 'selected' : ''}>Owner</option>
+            <option value="Accountant" ${!u.role || u.role === 'Accountant' ? 'selected' : ''}>Accountant</option>
+            <option value="Viewer" ${u.role === 'Viewer' ? 'selected' : ''}>Viewer</option>
+          </select>
+        </label>
+        <label class="field" style="grid-column:1/-1"><span>Status</span>
+          <select id="uActive">
+            <option value="1" ${u.active !== false ? 'selected' : ''}>Active</option>
+            <option value="0" ${u.active === false ? 'selected' : ''}>Disabled</option>
+          </select>
+        </label>
+        <div style="grid-column:1/-1">
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:6px">Quarry access</div>
+          ${userQuarryChecksHtml(u.quarryIds, u.role === 'Owner' || (u.quarryIds || []).includes('*'))}
+        </div>
+      </div>`,
+      () => {
+        const name = ($('#uName')?.value || '').trim();
+        const username = ($('#uUser')?.value || '').trim().toLowerCase();
+        const pass = $('#uPass')?.value || '';
+        const role = $('#uRole')?.value || 'Accountant';
+        if (!name || !username) {
+          toast('Name and username required');
+          return false;
+        }
+        if (isNew && !pass) {
+          toast('Password required');
+          return false;
+        }
+        const taken = (state.users || []).some(
+          (x) => (x.username || '').toLowerCase() === username && x.id !== u.id
+        );
+        if (taken) {
+          toast('Username already used');
+          return false;
+        }
+        let quarryIds = collectUserQuarries();
+        if (role === 'Owner') quarryIds = ['*'];
+        if (!quarryIds.length) {
+          toast('Select at least one quarry');
+          return false;
+        }
+        if (isNew) {
+          state.users.push({
+            id: uid(),
+            name,
+            username,
+            password: pass,
+            role,
+            quarryIds,
+            lastQuarryId: quarryIds[0] === '*' ? state.quarries[0]?.id : quarryIds[0],
+            active: $('#uActive')?.value !== '0',
+          });
+          toast('User added · ' + username);
+        } else {
+          u.name = name;
+          u.username = username;
+          if (pass) u.password = pass;
+          u.role = role;
+          u.quarryIds = quarryIds;
+          u.active = $('#uActive')?.value !== '0';
+          toast('User updated · ' + username);
+        }
+        return true;
+      },
+      { large: true, onAfterSave: () => renderUsers() }
+    );
+    const syncAll = () => {
+      const all = $('#uAllQ')?.checked || $('#uRole')?.value === 'Owner';
+      if ($('#uAllQ') && $('#uRole')?.value === 'Owner') $('#uAllQ').checked = true;
+      const list = $('#uQList');
+      if (list) {
+        list.style.opacity = all ? '.5' : '1';
+        list.style.pointerEvents = all ? 'none' : '';
+      }
+    };
+    $('#uAllQ')?.addEventListener('change', syncAll);
+    $('#uRole')?.addEventListener('change', syncAll);
+  }
+
+  function renderUsers() {
+    if (!isOwner()) return;
+    const q = ($('#userSearch')?.value || '').toLowerCase();
+    let list = [...(state.users || [])];
+    if (q) {
+      list = list.filter((u) => `${u.name} ${u.username} ${u.role}`.toLowerCase().includes(q));
+    }
+    if ($('#userStats')) {
+      $('#userStats').innerHTML = `
+        <div class="card"><h3>Users</h3><div class="stat">${(state.users || []).length}</div></div>
+        <div class="card"><h3>Owners</h3><div class="stat">${(state.users || []).filter((u) => u.role === 'Owner').length}</div></div>
+        <div class="card"><h3>Accountants</h3><div class="stat">${(state.users || []).filter((u) => u.role === 'Accountant').length}</div></div>
+        <div class="card"><h3>Viewers</h3><div class="stat">${(state.users || []).filter((u) => u.role === 'Viewer').length}</div></div>`;
+    }
+    if ($('#userTable')) {
+      $('#userTable').innerHTML = list
+        .map(
+          (u) => `<tr>
+            <td><strong>${u.name}</strong>${u.id === sessionUserId ? ' · you' : ''}</td>
+            <td>${u.username}</td>
+            <td>${u.role}</td>
+            <td>${quarryAccessLabel(u)}</td>
+            <td>${u.active === false ? '<span class="badge danger">Disabled</span>' : '<span class="badge ok">Active</span>'}</td>
+            <td>
+              <button type="button" class="btn btn-ghost btn-sm" data-uedit="${u.id}">Edit</button>
+              ${
+                u.id === sessionUserId
+                  ? ''
+                  : `<button type="button" class="btn btn-ghost btn-sm" data-udel="${u.id}">Delete</button>`
+              }
+            </td>
+          </tr>`
+        )
+        .join('');
+      $$('#userTable [data-uedit]').forEach((b) =>
+        b.addEventListener('click', () => {
+          const user = state.users.find((x) => x.id === b.dataset.uedit);
+          if (user) openUserModal(user);
+        })
+      );
+      $$('#userTable [data-udel]').forEach((b) =>
+        b.addEventListener('click', () => {
+          const user = state.users.find((x) => x.id === b.dataset.udel);
+          if (!user) return;
+          if (user.role === 'Owner' && (state.users || []).filter((x) => x.role === 'Owner' && x.active !== false).length <= 1) {
+            toast('Keep at least one Owner');
+            return;
+          }
+          if (!confirm('Delete login ' + user.username + '?')) return;
+          state.users = state.users.filter((x) => x.id !== user.id);
+          save(state);
+          toast('User deleted');
+          renderUsers();
+        })
+      );
+    }
+  }
+
+  $('#addUserBtn')?.addEventListener('click', () => openUserModal());
+  $('#userSearch')?.addEventListener('input', renderUsers);
 
   const PL_EXCLUDE_HEADS = new Set([
     'Vendor Payment',
@@ -9142,7 +10488,7 @@
     const salesGst = marks.reduce((s, m) => s + markGstAmt(m), 0);
     const salesTotal = salesGross + salesGst;
     const totalCbm = marks.reduce((s, m) => s + volCBM(m), 0);
-    const royalty = totalCbm * (Number(state.royaltyRate) || 0);
+    const royalty = totalCbm * quarryRates().royaltyRate;
     const rent = quarryMachineReadings()
       .filter((r) => inFy(r.date || `${readingMonth(r)}-01`, fy))
       .reduce((s, r) => s + Number(r.rent || 0), 0);
@@ -9257,7 +10603,831 @@
     }
   }
 
+  /* ---------- Proforma Invoice (Vyapar-style editor) ---------- */
+  let piDraft = null;
+  let piMountedId = null;
+
+  function piEsc(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function piMoney(n) {
+    return Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function piTypeLabel(t) {
+    if (t === 'slab') return 'Slab (SQF)';
+    if (t === 'export') return 'Export';
+    return 'Block (CBM)';
+  }
+
+  function quarryInvoices() {
+    return (state.invoices || []).filter((i) => i.quarryId === state.activeQuarryId);
+  }
+
+  function nextPiRef() {
+    const fy = fyFromDate(today());
+    const nums = quarryInvoices()
+      .filter((i) => fyFromDate(i.date) === fy)
+      .map((i) => parseInt(i.refNo, 10) || 0);
+    return String((nums.length ? Math.max(...nums) : 0) + 1);
+  }
+
+  function emptyPiLine(type) {
+    return {
+      id: uid(),
+      item: '',
+      qty: '',
+      unit: type === 'slab' ? 'SQF' : 'CBM',
+      price: type === 'slab' ? quarryRates().slabRate : '',
+      discPct: '',
+      discAmt: '',
+      taxPct: quarryRates().gstPct,
+      hsn: type === 'export' ? '2516' : '',
+      markingId: '',
+    };
+  }
+
+  function newPiDraft() {
+    const co = companyOf();
+    return {
+      id: 'new',
+      quarryId: state.activeQuarryId,
+      type: 'block',
+      refNo: nextPiRef(),
+      date: today(),
+      partyId: '',
+      stateOfSupply: co.state || 'Tamil Nadu',
+      priceWithTax: false,
+      lines: [emptyPiLine('block'), emptyPiLine('block')],
+      terms: '',
+      description: '',
+      imageData: '',
+      documentName: '',
+      documentData: '',
+      roundOff: true,
+      orderNo: '',
+      orderDate: '',
+      fob: 'CHENNAI PORT',
+      paymentTerms: '',
+      currency: 'INR',
+      ieCode: co.ieCode || COMPANY.ieCode,
+      status: 'draft',
+    };
+  }
+
+  function loadPiDraft(id) {
+    if (!id || id === 'new') {
+      piDraft = newPiDraft();
+      return;
+    }
+    const inv = (state.invoices || []).find((x) => x.id === id);
+    piDraft = inv ? JSON.parse(JSON.stringify(inv)) : newPiDraft();
+    if (!piDraft.lines || !piDraft.lines.length) {
+      piDraft.lines = [emptyPiLine(piDraft.type), emptyPiLine(piDraft.type)];
+    }
+  }
+
+  function lineCalc(line, priceWithTax) {
+    const qty = Number(line.qty) || 0;
+    const price = Number(line.price) || 0;
+    const taxPct = Number(line.taxPct) || 0;
+    const base = qty * price;
+    let discAmt = Number(line.discAmt) || 0;
+    if (line._discFromPct) {
+      discAmt = base * ((Number(line.discPct) || 0) / 100);
+    }
+    const net = Math.max(0, base - discAmt);
+    let taxable;
+    let taxAmt;
+    let amount;
+    if (priceWithTax) {
+      amount = net;
+      taxable = taxPct ? amount / (1 + taxPct / 100) : amount;
+      taxAmt = amount - taxable;
+    } else {
+      taxable = net;
+      taxAmt = taxable * (taxPct / 100);
+      amount = taxable + taxAmt;
+    }
+    return { qty, base, discAmt, taxable, taxAmt, amount };
+  }
+
+  function invoiceTotals(inv) {
+    let qty = 0;
+    let disc = 0;
+    let tax = 0;
+    let taxable = 0;
+    let amount = 0;
+    (inv.lines || []).forEach((line) => {
+      const c = lineCalc(line, inv.priceWithTax);
+      qty += c.qty;
+      disc += c.discAmt;
+      tax += c.taxAmt;
+      taxable += c.taxable;
+      amount += c.amount;
+    });
+    let roundAmt = 0;
+    let total = amount;
+    if (inv.roundOff) {
+      const rounded = Math.round(amount);
+      roundAmt = +(rounded - amount).toFixed(2);
+      total = rounded;
+    }
+    const coState = companyOf().state || 'Tamil Nadu';
+    const intra = !inv.stateOfSupply || inv.stateOfSupply === coState;
+    return {
+      qty,
+      disc,
+      tax,
+      taxable,
+      amount,
+      roundAmt,
+      total,
+      intra,
+      cgst: intra ? tax / 2 : 0,
+      sgst: intra ? tax / 2 : 0,
+      igst: intra ? 0 : tax,
+    };
+  }
+
+  function piPartyOptions(selectedId) {
+    const list = state.parties.filter(isCustomerParty).sort((a, b) => a.name.localeCompare(b.name));
+    return (
+      `<option value="">Select</option>` +
+      list
+        .map((p) => `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${piEsc(p.name)}</option>`)
+        .join('') +
+      `<option value="__new__">+ Add party…</option>`
+    );
+  }
+
+  function piLineRowHtml(line, idx) {
+    const unitOpts = PI_UNITS.map(
+      (u) => `<option value="${u}" ${line.unit === u ? 'selected' : ''}>${u}</option>`
+    ).join('');
+    const taxOpts = PI_TAX.map(
+      (t) => `<option value="${t}" ${String(line.taxPct) === t ? 'selected' : ''}>${t}%</option>`
+    ).join('');
+    return `<tr data-line="${line.id}">
+      <td class="pi-idx">${idx + 1}</td>
+      <td><input class="pi-item" placeholder="Item name" value="${piEsc(line.item)}" /></td>
+      <td><input class="pi-qty num" type="number" min="0" step="0.001" value="${line.qty === '' || line.qty == null ? '' : line.qty}" /></td>
+      <td><select class="pi-unit">${unitOpts}</select></td>
+      <td><input class="pi-price num" type="number" min="0" step="0.01" value="${line.price === '' || line.price == null ? '' : line.price}" /></td>
+      <td><input class="pi-dpct num" type="number" min="0" step="0.01" value="${line.discPct === '' || line.discPct == null ? '' : line.discPct}" /></td>
+      <td><input class="pi-damt num" type="number" min="0" step="0.01" value="${line.discAmt === '' || line.discAmt == null ? '' : line.discAmt}" /></td>
+      <td><select class="pi-tax"><option value="">Select</option>${taxOpts}</select></td>
+      <td class="num pi-taxamt">0.00</td>
+      <td class="num pi-amt">0.00</td>
+      <td><button type="button" class="pi-del" title="Remove">✕</button></td>
+    </tr>`;
+  }
+
+  function piEditorHtml() {
+    const d = piDraft;
+    const co = companyOf();
+    const states = INDIA_STATES.map(
+      (s) => `<option value="${s}" ${d.stateOfSupply === s ? 'selected' : ''}>${s}</option>`
+    ).join('');
+    const typeBtn = (key, label) =>
+      `<button type="button" data-pitype="${key}" class="${d.type === key ? 'active' : ''}">${label}</button>`;
+    return `<div class="pi-editor">
+      <div class="pi-editor-head">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <button type="button" class="btn btn-ghost btn-sm" id="piBack">← Invoices</button>
+          <h1>Proforma Invoice</h1>
+        </div>
+        <div class="pi-type-tabs">
+          ${typeBtn('block', 'Block · CBM')}
+          ${typeBtn('slab', 'Slab · SQF')}
+          ${typeBtn('export', 'Export')}
+        </div>
+      </div>
+      <div class="pi-sheet">
+        <div class="pi-meta">
+          <label class="pi-field pi-party-field">
+            <span>Party <em class="req">*</em></span>
+            <select id="piParty">${piPartyOptions(d.partyId)}</select>
+          </label>
+          <div class="pi-meta-right">
+            <label class="pi-field"><span>Ref No.</span><input id="piRef" value="${piEsc(d.refNo)}" /></label>
+            <label class="pi-field"><span>Invoice Date</span><input type="date" id="piDate" value="${d.date || today()}" /></label>
+            <label class="pi-field"><span>State of supply</span><select id="piState"><option value="">Select</option>${states}</select></label>
+          </div>
+        </div>
+        <div class="pi-export-row" id="piExportRow" style="${d.type === 'export' ? '' : 'display:none'}">
+          <label class="pi-field"><span>Buyer’s order no.</span><input id="piOrderNo" value="${piEsc(d.orderNo)}" /></label>
+          <label class="pi-field"><span>Order date</span><input type="date" id="piOrderDate" value="${piEsc(d.orderDate)}" /></label>
+          <label class="pi-field"><span>F.O.B.</span><input id="piFob" value="${piEsc(d.fob)}" placeholder="CHENNAI PORT" /></label>
+          <label class="pi-field"><span>IE code</span><input id="piIe" value="${piEsc(d.ieCode || co.ieCode)}" /></label>
+          <label class="pi-field"><span>Payment terms</span><input id="piPayTerms" value="${piEsc(d.paymentTerms)}" /></label>
+          <label class="pi-field"><span>Currency</span>
+            <select id="piCur"><option value="INR" ${d.currency !== 'USD' ? 'selected' : ''}>INR</option><option value="USD" ${d.currency === 'USD' ? 'selected' : ''}>USD</option></select>
+          </label>
+        </div>
+        <div style="display:flex;align-items:center;margin-bottom:6px">
+          <button type="button" class="pi-from-mark" id="piFromMark">+ Add from marking</button>
+        </div>
+        <div class="pi-table-wrap">
+          <table class="pi-table">
+            <thead>
+              <tr>
+                <th rowspan="2">#</th>
+                <th rowspan="2">Item</th>
+                <th rowspan="2" class="num">Qty</th>
+                <th rowspan="2">Unit</th>
+                <th rowspan="2">
+                  Price/unit
+                  <div>
+                    <select id="piPriceTax" style="font-size:11px;min-height:24px;padding:2px 4px;border:1px solid #dadce0;background:#fff;width:auto">
+                      <option value="0" ${!d.priceWithTax ? 'selected' : ''}>Without Tax</option>
+                      <option value="1" ${d.priceWithTax ? 'selected' : ''}>With Tax</option>
+                    </select>
+                  </div>
+                </th>
+                <th colspan="2">Discount</th>
+                <th colspan="2">Tax</th>
+                <th rowspan="2" class="num">Amount</th>
+                <th rowspan="2"><button type="button" class="pi-col-add" id="piAddRowTop" title="Add row">+</button></th>
+              </tr>
+              <tr class="pi-sub">
+                <th class="num">%</th>
+                <th class="num">Amount</th>
+                <th>%</th>
+                <th class="num">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="piLines">${d.lines.map((l, i) => piLineRowHtml(l, i)).join('')}</tbody>
+            <tfoot>
+              <tr>
+                <td colspan="2">TOTAL</td>
+                <td class="num" id="piTotQty">0</td>
+                <td colspan="3"></td>
+                <td class="num" id="piTotDisc">0.00</td>
+                <td></td>
+                <td class="num" id="piTotTax">0.00</td>
+                <td class="num" id="piTotAmt">0.00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <button type="button" class="pi-add-row" id="piAddRow">ADD ROW</button>
+        <div class="pi-extras">
+          <div>
+            <button type="button" class="pi-extra-btn" id="piTermsBtn"><span class="ico">☰</span> ADD TERMS &amp; CONDITIONS</button>
+            <div class="pi-extra-panel ${d.terms ? 'open' : ''}" id="piTermsPanel">
+              <textarea id="piTerms" placeholder="Payment terms, jurisdiction…">${piEsc(d.terms).replace(/&quot;/g, '"')}</textarea>
+            </div>
+          </div>
+          <div class="pi-extra-stack">
+            <button type="button" class="pi-extra-btn" id="piDescBtn"><span class="ico">▤</span> ADD DESCRIPTION</button>
+            <div class="pi-extra-panel ${d.description ? 'open' : ''}" id="piDescPanel">
+              <textarea id="piDesc" placeholder="Material name, marked by, no. of blocks…">${piEsc(d.description).replace(/&quot;/g, '"')}</textarea>
+            </div>
+            <button type="button" class="pi-extra-btn" id="piImgBtn"><span class="ico">▣</span> ADD IMAGE</button>
+            <input type="file" id="piImgFile" accept="image/*" hidden />
+            <div id="piImgWrap">${d.imageData ? `<img class="pi-img-preview" src="${d.imageData}" alt="Attachment" />` : ''}</div>
+            <button type="button" class="pi-extra-btn" id="piDocBtn"><span class="ico">▭</span> ADD DOCUMENT</button>
+            <input type="file" id="piDocFile" accept=".pdf,.doc,.docx,image/*" hidden />
+            <div id="piDocWrap" style="font-size:12px;color:#5f6368">${d.documentName ? piEsc(d.documentName) : ''}</div>
+          </div>
+          <div class="pi-totals">
+            <label class="pi-round">
+              <input type="checkbox" id="piRound" ${d.roundOff ? 'checked' : ''} /> Round Off
+              <input type="number" id="piRoundAmt" step="0.01" readonly />
+            </label>
+            <div class="pi-grand">Total <input id="piGrand" readonly /></div>
+            <div class="pi-tax-break" id="piTaxBreak"></div>
+          </div>
+        </div>
+      </div>
+      <div class="pi-bar">
+        <div class="pi-share-wrap" id="piShareWrap">
+          <button type="button" class="btn-share" id="piShareBtn">Share ▾</button>
+          <div class="pi-share-menu">
+            <button type="button" id="piPrintBtn">Print / PDF</button>
+            <button type="button" id="piExcelBtn">Excel</button>
+          </div>
+        </div>
+        <button type="button" class="btn-save" id="piSaveBtn">Save</button>
+      </div>
+    </div>`;
+  }
+
+  function paintPiCalcs() {
+    if (!piDraft) return;
+    const t = invoiceTotals(piDraft);
+    $$('#piLines tr').forEach((tr) => {
+      const line = piDraft.lines.find((l) => l.id === tr.dataset.line);
+      if (!line) return;
+      const c = lineCalc(line, piDraft.priceWithTax);
+      const taxCell = tr.querySelector('.pi-taxamt');
+      const amtCell = tr.querySelector('.pi-amt');
+      if (taxCell) taxCell.textContent = c.taxAmt ? piMoney(c.taxAmt) : '0.00';
+      if (amtCell) amtCell.textContent = c.amount ? piMoney(c.amount) : '0.00';
+      const damt = tr.querySelector('.pi-damt');
+      if (damt && document.activeElement !== damt) damt.value = c.discAmt ? Number(c.discAmt.toFixed(2)) : '';
+    });
+    if ($('#piTotQty')) $('#piTotQty').textContent = t.qty ? Number(t.qty.toFixed(3)) : '0';
+    if ($('#piTotDisc')) $('#piTotDisc').textContent = piMoney(t.disc);
+    if ($('#piTotTax')) $('#piTotTax').textContent = piMoney(t.tax);
+    if ($('#piTotAmt')) $('#piTotAmt').textContent = piMoney(t.amount);
+    if ($('#piRoundAmt')) $('#piRoundAmt').value = t.roundAmt ? t.roundAmt.toFixed(2) : '0.00';
+    if ($('#piGrand')) $('#piGrand').value = piMoney(t.total);
+    if ($('#piTaxBreak')) {
+      $('#piTaxBreak').textContent = t.intra
+        ? `CGST ${piMoney(t.cgst)} · SGST ${piMoney(t.sgst)}`
+        : `IGST ${piMoney(t.igst)}`;
+    }
+  }
+
+  function syncPiHeader() {
+    if (!piDraft) return;
+    piDraft.partyId = $('#piParty')?.value || '';
+    piDraft.refNo = $('#piRef')?.value || '';
+    piDraft.date = $('#piDate')?.value || today();
+    piDraft.stateOfSupply = $('#piState')?.value || '';
+    piDraft.priceWithTax = $('#piPriceTax')?.value === '1';
+    piDraft.roundOff = !!$('#piRound')?.checked;
+    piDraft.terms = $('#piTerms')?.value || '';
+    piDraft.description = $('#piDesc')?.value || '';
+    if ($('#piOrderNo')) piDraft.orderNo = $('#piOrderNo').value;
+    if ($('#piOrderDate')) piDraft.orderDate = $('#piOrderDate').value;
+    if ($('#piFob')) piDraft.fob = $('#piFob').value;
+    if ($('#piIe')) piDraft.ieCode = $('#piIe').value;
+    if ($('#piPayTerms')) piDraft.paymentTerms = $('#piPayTerms').value;
+    if ($('#piCur')) piDraft.currency = $('#piCur').value;
+  }
+
+  function syncPiLine(tr, fromPct) {
+    const line = piDraft.lines.find((l) => l.id === tr.dataset.line);
+    if (!line) return;
+    line.item = tr.querySelector('.pi-item')?.value || '';
+    line.qty = tr.querySelector('.pi-qty')?.value;
+    line.unit = tr.querySelector('.pi-unit')?.value || 'NONE';
+    line.price = tr.querySelector('.pi-price')?.value;
+    line.taxPct = tr.querySelector('.pi-tax')?.value || 0;
+    if (fromPct) {
+      line._discFromPct = true;
+      line.discPct = tr.querySelector('.pi-dpct')?.value;
+    } else {
+      line._discFromPct = false;
+      line.discAmt = tr.querySelector('.pi-damt')?.value;
+      const base = (Number(line.qty) || 0) * (Number(line.price) || 0);
+      line.discPct = base ? +(((Number(line.discAmt) || 0) / base) * 100).toFixed(2) : 0;
+      const dp = tr.querySelector('.pi-dpct');
+      if (dp && document.activeElement !== dp) dp.value = line.discPct || '';
+    }
+  }
+
+  function wirePiLine(tr) {
+    tr.querySelector('.pi-item')?.addEventListener('input', () => syncPiLine(tr));
+    tr.querySelector('.pi-qty')?.addEventListener('input', () => {
+      syncPiLine(tr, true);
+      paintPiCalcs();
+    });
+    tr.querySelector('.pi-price')?.addEventListener('input', () => {
+      syncPiLine(tr, true);
+      paintPiCalcs();
+    });
+    tr.querySelector('.pi-unit')?.addEventListener('change', () => syncPiLine(tr));
+    tr.querySelector('.pi-tax')?.addEventListener('change', () => {
+      syncPiLine(tr);
+      paintPiCalcs();
+    });
+    tr.querySelector('.pi-dpct')?.addEventListener('input', () => {
+      syncPiLine(tr, true);
+      paintPiCalcs();
+    });
+    tr.querySelector('.pi-damt')?.addEventListener('input', () => {
+      syncPiLine(tr, false);
+      paintPiCalcs();
+    });
+    tr.querySelector('.pi-del')?.addEventListener('click', () => {
+      if (piDraft.lines.length <= 1) {
+        toast('Keep at least one row');
+        return;
+      }
+      piDraft.lines = piDraft.lines.filter((l) => l.id !== tr.dataset.line);
+      tr.remove();
+      $$('#piLines tr').forEach((row, i) => {
+        const idx = row.querySelector('.pi-idx');
+        if (idx) idx.textContent = String(i + 1);
+      });
+      paintPiCalcs();
+    });
+  }
+
+  function addPiRow() {
+    const line = emptyPiLine(piDraft.type);
+    piDraft.lines.push(line);
+    $('#piLines')?.insertAdjacentHTML('beforeend', piLineRowHtml(line, piDraft.lines.length - 1));
+    const tr = $('#piLines')?.lastElementChild;
+    if (tr) {
+      wirePiLine(tr);
+      tr.querySelector('.pi-item')?.focus();
+    }
+    paintPiCalcs();
+  }
+
+  function bindPiEditor() {
+    $('#piBack')?.addEventListener('click', () => go('invoices'));
+    $$('[data-pitype]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        syncPiHeader();
+        piDraft.type = btn.dataset.pitype;
+        piDraft.lines.forEach((l) => {
+          if (!l.item && !l.qty && !l.price) l.unit = piDraft.type === 'slab' ? 'SQF' : 'CBM';
+        });
+        piMountedId = null;
+        renderPiEditor();
+      });
+    });
+    $('#piParty')?.addEventListener('change', () => {
+      if ($('#piParty').value === '__new__') {
+        $('#piParty').value = piDraft.partyId || '';
+        openAddPartyModal({
+          defaultType: 'Customer',
+          onSaved: (party) => {
+            if (!party?.id) return;
+            piDraft.partyId = party.id;
+            const sel = $('#piParty');
+            if (sel) {
+              sel.innerHTML = piPartyOptions(party.id);
+              sel.value = party.id;
+            }
+            toast('Party · ' + party.name);
+          },
+        });
+        return;
+      }
+      piDraft.partyId = $('#piParty').value;
+      const p = state.parties.find((x) => x.id === piDraft.partyId);
+      if (p?.state && $('#piState') && !$('#piState').value) {
+        $('#piState').value = p.state;
+        piDraft.stateOfSupply = p.state;
+        paintPiCalcs();
+      }
+    });
+    ['#piRef', '#piDate', '#piState', '#piOrderNo', '#piOrderDate', '#piFob', '#piIe', '#piPayTerms', '#piCur', '#piTerms', '#piDesc'].forEach(
+      (sel) => {
+        $(sel)?.addEventListener('input', syncPiHeader);
+        $(sel)?.addEventListener('change', () => {
+          syncPiHeader();
+          paintPiCalcs();
+        });
+      }
+    );
+    $('#piPriceTax')?.addEventListener('change', () => {
+      syncPiHeader();
+      paintPiCalcs();
+    });
+    $('#piRound')?.addEventListener('change', () => {
+      syncPiHeader();
+      paintPiCalcs();
+    });
+    $$('#piLines tr').forEach(wirePiLine);
+    $('#piAddRow')?.addEventListener('click', addPiRow);
+    $('#piAddRowTop')?.addEventListener('click', addPiRow);
+    $('#piTermsBtn')?.addEventListener('click', () => $('#piTermsPanel')?.classList.toggle('open'));
+    $('#piDescBtn')?.addEventListener('click', () => $('#piDescPanel')?.classList.toggle('open'));
+    $('#piImgBtn')?.addEventListener('click', () => $('#piImgFile')?.click());
+    $('#piDocBtn')?.addEventListener('click', () => $('#piDocFile')?.click());
+    $('#piImgFile')?.addEventListener('change', (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      if (f.size > 900000) {
+        toast('Image too large (keep under 900 KB)');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        piDraft.imageData = reader.result;
+        if ($('#piImgWrap')) $('#piImgWrap').innerHTML = `<img class="pi-img-preview" src="${piDraft.imageData}" alt="" />`;
+        toast('Image attached');
+      };
+      reader.readAsDataURL(f);
+    });
+    $('#piDocFile')?.addEventListener('change', (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      if (f.size > 900000) {
+        toast('Document too large (keep under 900 KB)');
+        return;
+      }
+      piDraft.documentName = f.name;
+      const reader = new FileReader();
+      reader.onload = () => {
+        piDraft.documentData = reader.result;
+        if ($('#piDocWrap')) $('#piDocWrap').textContent = f.name;
+        toast('Document attached');
+      };
+      reader.readAsDataURL(f);
+    });
+    $('#piFromMark')?.addEventListener('click', addPiFromMarking);
+    $('#piShareBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      $('#piShareWrap')?.classList.toggle('open');
+    });
+    $('#piPrintBtn')?.addEventListener('click', () => {
+      syncPiHeader();
+      printPi(piDraft);
+    });
+    $('#piExcelBtn')?.addEventListener('click', () => {
+      syncPiHeader();
+      exportPiExcel(piDraft);
+    });
+    $('#piSaveBtn')?.addEventListener('click', savePiDraft);
+  }
+
+  function addPiFromMarking() {
+    syncPiHeader();
+    if (!piDraft.partyId) {
+      toast('Select party first');
+      return;
+    }
+    const used = new Set(piDraft.lines.map((l) => l.markingId).filter(Boolean));
+    const marks = quarryMarkings().filter((m) => m.partyId === piDraft.partyId && !used.has(m.id));
+    if (!marks.length) {
+      toast('No remaining markings for this party');
+      return;
+    }
+    piDraft.lines = piDraft.lines.filter((l) => l.item || l.qty || l.price);
+    marks.forEach((m) => {
+      piDraft.lines.push({
+        id: uid(),
+        item: `${m.blockNo} — ${m.choice || ''} ${m.l}×${m.w}×${m.h}`.replace(/\s+/g, ' ').trim(),
+        qty: +volCBM(m).toFixed(3),
+        unit: 'CBM',
+        price: Number(m.rate) || 0,
+        discPct: 0,
+        discAmt: 0,
+        taxPct: markGstPct(m),
+        hsn: '2516',
+        markingId: m.id,
+      });
+    });
+    if (!piDraft.lines.length) piDraft.lines = [emptyPiLine(piDraft.type)];
+    piMountedId = null;
+    renderPiEditor();
+    toast(`${marks.length} block(s) added`);
+  }
+
+  function savePiDraft() {
+    if (!canEdit()) {
+      toast('View-only login');
+      return;
+    }
+    syncPiHeader();
+    if (!piDraft.partyId || piDraft.partyId === '__new__') {
+      toast('Party is required');
+      $('#piParty')?.focus();
+      return;
+    }
+    const rec = JSON.parse(JSON.stringify(piDraft));
+    delete rec._discFromPct;
+    rec.lines.forEach((l) => delete l._discFromPct);
+    rec.quarryId = state.activeQuarryId;
+    rec.status = 'saved';
+    if (!rec.id || rec.id === 'new') rec.id = uid();
+    if (!Array.isArray(state.invoices)) state.invoices = [];
+    const idx = state.invoices.findIndex((i) => i.id === rec.id);
+    if (idx >= 0) state.invoices[idx] = rec;
+    else state.invoices.push(rec);
+    save(state);
+    piDraft = JSON.parse(JSON.stringify(rec));
+    selectedPiId = rec.id;
+    piMountedId = null;
+    if ((location.hash || '').replace(/^#/, '') !== `pi/${rec.id}`) {
+      history.replaceState(null, '', `#pi/${rec.id}`);
+    }
+    toast('Proforma invoice saved · Ref ' + rec.refNo);
+    renderPiEditor();
+  }
+
+  function printPi(inv) {
+    const party = state.parties.find((p) => p.id === inv.partyId);
+    const co = companyOf();
+    const t = invoiceTotals(inv);
+    const fy = fyFromDate(inv.date) || activeYear();
+    const unit = inv.type === 'slab' ? 'SQF' : 'CBM';
+    const rows = (inv.lines || [])
+      .filter((l) => l.item || l.qty)
+      .map((l, i) => {
+        const c = lineCalc(l, inv.priceWithTax);
+        return `<tr>
+          <td>${i + 1}</td>
+          <td>${piEsc(l.item)}${l.hsn ? `<div style="color:#667787;font-size:11px">HSN ${piEsc(l.hsn)}</div>` : ''}</td>
+          <td class="num">${c.qty || ''}</td>
+          <td>${piEsc(l.unit || unit)}</td>
+          <td class="num">${l.price ? piMoney(l.price) : ''}</td>
+          <td class="num">${c.taxAmt ? piMoney(c.taxAmt) : '—'}</td>
+          <td class="num">${piMoney(c.amount)}</td>
+        </tr>`;
+      })
+      .join('');
+    const exportBits =
+      inv.type === 'export'
+        ? `<p>Buyer’s order: ${piEsc(inv.orderNo || '—')} ${inv.orderDate ? ' · ' + inv.orderDate : ''}<br/>
+           F.O.B. ${piEsc(inv.fob || '—')} · IE ${piEsc(inv.ieCode || co.ieCode)} · ${piEsc(inv.currency || 'INR')}<br/>
+           ${inv.paymentTerms ? 'Terms: ' + piEsc(inv.paymentTerms) : ''}</p>`
+        : '';
+    const gstRows = t.intra
+      ? `<tr><td colspan="6">CGST</td><td class="num">${piMoney(t.cgst)}</td></tr>
+         <tr><td colspan="6">SGST</td><td class="num">${piMoney(t.sgst)}</td></tr>`
+      : `<tr><td colspan="6">IGST</td><td class="num">${piMoney(t.igst)}</td></tr>`;
+    printReport(
+      `Proforma Invoice ${inv.refNo}`,
+      `<div style="display:flex;justify-content:space-between;gap:24px;margin-bottom:16px">
+        <div>
+          <strong>${piEsc(co.name)}</strong><br/>
+          ${piEsc(co.address)}<br/>
+          GSTIN ${piEsc(co.gstin)} · IE ${piEsc(co.ieCode)}
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:1.1rem;font-weight:700">PROFORMA INVOICE</div>
+          Ref PI/${fy}/${piEsc(inv.refNo)}<br/>
+          Date ${inv.date}<br/>
+          ${piTypeLabel(inv.type)} · ${activeQuarry().name}
+        </div>
+      </div>
+      <p><strong>M/s. ${piEsc(party?.name || '—')}</strong><br/>
+      ${party?.billing || party?.shipping || ''}<br/>
+      ${party?.gstin && party.gstin !== '—' ? 'GSTIN ' + piEsc(party.gstin) : ''}
+      ${inv.stateOfSupply ? ' · State of supply: ' + piEsc(inv.stateOfSupply) : ''}</p>
+      ${exportBits}
+      ${inv.description ? `<pre style="font:inherit;white-space:pre-wrap">${piEsc(inv.description)}</pre>` : ''}
+      ${inv.imageData ? `<p><img src="${inv.imageData}" style="max-width:280px;max-height:160px" alt="" /></p>` : ''}
+      <table>
+        <thead><tr><th>#</th><th>Particulars</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate</th><th class="num">Tax</th><th class="num">Amount</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          ${gstRows}
+          ${inv.roundOff ? `<tr><td colspan="6">Round off</td><td class="num">${piMoney(t.roundAmt)}</td></tr>` : ''}
+          <tr><th colspan="6">Total</th><th class="num">${piMoney(t.total)}</th></tr>
+        </tfoot>
+      </table>
+      ${inv.terms ? `<p style="margin-top:14px"><strong>Terms &amp; conditions</strong><br/><pre style="font:inherit;white-space:pre-wrap">${piEsc(inv.terms)}</pre></p>` : ''}
+      <p style="margin-top:18px;font-size:.85rem">Bank: ${piEsc(bankLine() || co.banks)}<br/>For ${piEsc(co.name)}</p>`
+    );
+  }
+
+  function exportPiExcel(inv) {
+    const party = state.parties.find((p) => p.id === inv.partyId);
+    const t = invoiceTotals(inv);
+    const rows = [
+      ['Proforma Invoice', inv.refNo, inv.date, piTypeLabel(inv.type)],
+      ['Party', party?.name || ''],
+      ['State of supply', inv.stateOfSupply || ''],
+      [],
+      ['#', 'Item', 'Qty', 'Unit', 'Rate', 'Discount', 'Tax', 'Amount'],
+      ...(inv.lines || [])
+        .filter((l) => l.item || l.qty)
+        .map((l, i) => {
+          const c = lineCalc(l, inv.priceWithTax);
+          return [i + 1, l.item, c.qty, l.unit, l.price, c.discAmt, c.taxAmt, c.amount];
+        }),
+      [],
+      ['', '', t.qty, '', '', t.disc, t.tax, t.total],
+    ];
+    downloadCsv(`PI-${inv.refNo || 'draft'}.csv`, rows);
+    toast('Invoice exported');
+  }
+
+  function renderPiEditor() {
+    if (!selectedPiId) return;
+    if (
+      piDraft &&
+      piDraft.id !== 'new' &&
+      piDraft.quarryId &&
+      piDraft.quarryId !== state.activeQuarryId
+    ) {
+      go('invoices');
+      return;
+    }
+    if (!piDraft || String(piDraft.id) !== String(selectedPiId)) {
+      loadPiDraft(selectedPiId);
+      piMountedId = null;
+    }
+    const root = $('#piEditorRoot');
+    if (!root) return;
+    if (piMountedId === selectedPiId && root.querySelector('.pi-editor')) {
+      paintPiCalcs();
+      return;
+    }
+    root.innerHTML = piEditorHtml();
+    bindPiEditor();
+    paintPiCalcs();
+    piMountedId = selectedPiId;
+  }
+
+  function renderInvoices() {
+    const q = ($('#invoiceSearch')?.value || '').toLowerCase();
+    const typeF = $('#invoiceTypeFilter')?.value || 'all';
+    const sort = $('#invoiceSort')?.value || 'date-desc';
+    let list = quarryInvoices().map((inv) => {
+      const party = state.parties.find((p) => p.id === inv.partyId);
+      const t = invoiceTotals(inv);
+      return { inv, party, t };
+    });
+    if (typeF !== 'all') list = list.filter((x) => x.inv.type === typeF);
+    if (q) {
+      list = list.filter((x) =>
+        `${x.inv.refNo} ${x.party?.name || ''} ${x.inv.lines?.map((l) => l.item).join(' ')}`
+          .toLowerCase()
+          .includes(q)
+      );
+    }
+    list.sort((a, b) => {
+      if (sort === 'date-asc') return (a.inv.date || '').localeCompare(b.inv.date || '');
+      if (sort === 'amt-desc') return b.t.total - a.t.total;
+      if (sort === 'party') return (a.party?.name || '').localeCompare(b.party?.name || '');
+      return (b.inv.date || '').localeCompare(a.inv.date || '');
+    });
+    const tot = list.reduce((s, x) => s + x.t.total, 0);
+    if ($('#invoiceStats')) {
+      $('#invoiceStats').innerHTML = `
+        <div class="card"><h3>Invoices</h3><div class="stat">${list.length}</div><div class="hint">This quarry</div></div>
+        <div class="card"><h3>Value</h3><div class="stat ok">${money(tot)}</div><div class="hint">Incl. tax / round off</div></div>
+        <div class="card"><h3>Block</h3><div class="stat">${list.filter((x) => x.inv.type === 'block').length}</div></div>
+        <div class="card"><h3>Slab / Export</h3><div class="stat">${list.filter((x) => x.inv.type !== 'block').length}</div></div>`;
+    }
+    const page = slicePage(list, 'invoices', '#invoicePageSize');
+    if ($('#invoiceTable')) {
+      $('#invoiceTable').innerHTML = page.rows.length
+        ? page.rows
+            .map(
+              ({ inv, party, t }) => `<tr>
+                <td>${inv.date || '—'}</td>
+                <td>PI/${fyFromDate(inv.date) || '—'} / ${inv.refNo}</td>
+                <td><strong>${party?.name || '—'}</strong></td>
+                <td>${piTypeLabel(inv.type)}</td>
+                <td class="num">${t.qty ? Number(t.qty.toFixed(3)) : '—'}</td>
+                <td class="num">${money(t.tax)}</td>
+                <td class="num">${money(t.total)}</td>
+                <td>
+                  <button type="button" class="btn btn-ghost btn-sm" data-piedit="${inv.id}">Edit</button>
+                  <button type="button" class="btn btn-ghost btn-sm" data-piprint="${inv.id}">PDF</button>
+                  <button type="button" class="btn btn-ghost btn-sm" data-pidel="${inv.id}">Delete</button>
+                </td>
+              </tr>`
+            )
+            .join('')
+        : `<tr><td colspan="8"><div class="empty">No proforma invoices — create one like Vyapar</div></td></tr>`;
+      $$('#invoiceTable [data-piedit]').forEach((b) =>
+        b.addEventListener('click', () => go('pieditor', { piId: b.dataset.piedit }))
+      );
+      $$('#invoiceTable [data-piprint]').forEach((b) =>
+        b.addEventListener('click', () => {
+          const inv = state.invoices.find((i) => i.id === b.dataset.piprint);
+          if (inv) printPi(inv);
+        })
+      );
+      $$('#invoiceTable [data-pidel]').forEach((b) =>
+        b.addEventListener('click', () => {
+          if (!confirm('Delete this proforma invoice?')) return;
+          state.invoices = (state.invoices || []).filter((i) => i.id !== b.dataset.pidel);
+          save(state);
+          toast('Invoice deleted');
+          renderInvoices();
+        })
+      );
+    }
+    renderPager($('#invoicePager'), 'invoices', page, renderInvoices);
+  }
+
+  $('#addInvoiceBtn')?.addEventListener('click', () => {
+    piDraft = newPiDraft();
+    piMountedId = null;
+    go('pieditor', { piId: 'new' });
+  });
+  $('#exportInvoicesBtn')?.addEventListener('click', () => {
+    const rows = [
+      ['Date', 'Ref', 'Party', 'Type', 'Qty', 'Tax', 'Total'],
+      ...quarryInvoices().map((inv) => {
+        const party = state.parties.find((p) => p.id === inv.partyId);
+        const t = invoiceTotals(inv);
+        return [inv.date, inv.refNo, party?.name || '', piTypeLabel(inv.type), t.qty, t.tax, t.total];
+      }),
+    ];
+    downloadCsv('proforma-invoices.csv', rows);
+    toast('Invoice list exported');
+  });
+  ['#invoiceSearch', '#invoiceTypeFilter', '#invoiceSort', '#invoicePageSize'].forEach((sel) => {
+    $(sel)?.addEventListener(sel.includes('Search') ? 'input' : 'change', () => {
+      tableUI.invoices.page = 1;
+      renderInvoices();
+    });
+  });
+  document.addEventListener('click', () => $('#piShareWrap')?.classList.remove('open'));
+
   function render() {
+    applyAccess();
     renderSwitcher();
     const activePage = $('.page.active')?.id?.replace('page-', '') || 'dashboard';
     if (activePage === 'dashboard') renderDashboard();
@@ -9275,6 +11445,8 @@
     if (activePage === 'staffatt') renderStaffAtt();
     if (activePage === 'staffsal') renderStaffSalary();
     if (activePage === 'sales') renderSales();
+    if (activePage === 'invoices') renderInvoices();
+    if (activePage === 'pieditor') renderPiEditor();
     if (activePage === 'customers') renderCustomers();
     if (activePage === 'customerdetail') renderCustomerDetail();
     if (activePage === 'vendors') renderVendors();
@@ -9282,11 +11454,65 @@
     if (activePage === 'royalty') renderRoyalty();
     if (activePage === 'machinery') renderMachinery();
     if (activePage === 'masters') renderMasters();
+    if (activePage === 'users') renderUsers();
     if (activePage === 'reports') renderReports();
   }
 
   if (!(location.hash || '').replace(/^#/, '')) {
     history.replaceState(null, '', '#dashboard');
   }
-  applyRoute();
+  $('#loginForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const err = $('#loginErr');
+    if (err) {
+      err.hidden = true;
+      err.textContent = '';
+    }
+    const ok = signIn($('#loginUser')?.value, $('#loginPass')?.value);
+    if (!ok) {
+      if (err) {
+        err.hidden = false;
+        err.textContent = 'Wrong username or password';
+      }
+    }
+  });
+  $$('.login-demo-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const user = btn.dataset.user || '';
+      const pass = btn.dataset.pass || '';
+      if ($('#loginUser')) $('#loginUser').value = user;
+      if ($('#loginPass')) $('#loginPass').value = pass;
+      const err = $('#loginErr');
+      if (err) {
+        err.hidden = true;
+        err.textContent = '';
+      }
+      const ok = signIn(user, pass);
+      if (!ok) {
+        if (err) {
+          err.hidden = false;
+          err.textContent = 'Wrong username or password';
+        }
+      }
+    });
+  });
+  $('#userChipBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const menu = $('#userMenu');
+    const open = menu?.classList.contains('open');
+    closeSwitchers();
+    if (!open) menu?.classList.add('open');
+  });
+  $('#signOutBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    signOut();
+  });
+  $('#userMenuDrop')?.addEventListener('click', (e) => e.stopPropagation());
+  if (currentUser()) {
+    hideLogin();
+    applyAccess();
+    applyRoute();
+  } else {
+    showLogin();
+  }
 })();

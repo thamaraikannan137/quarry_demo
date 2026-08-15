@@ -7,8 +7,36 @@
   <title>Arun Granites — Quarry Manager (Prototype)</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+  <div id="loginGate" class="login-gate" hidden>
+    <form class="login-card" id="loginForm" autocomplete="on">
+      <div class="login-brand">Arun <span>Granites</span></div>
+      <h1>Sign in</h1>
+      <p class="login-sub">Melur office · quarry manager</p>
+      <label class="field"><span>Username</span><input id="loginUser" name="username" autocomplete="username" autofocus /></label>
+      <label class="field"><span>Password</span><input id="loginPass" name="password" type="password" autocomplete="current-password" /></label>
+      <p class="login-err" id="loginErr" hidden></p>
+      <button class="btn btn-primary login-submit" type="submit">Sign in</button>
+      <div class="login-demo">
+        <strong>Demo logins</strong>
+        <span class="login-demo-hint">Tap a name to fill &amp; sign in</span>
+        <button type="button" class="login-demo-btn" data-user="owner" data-pass="owner123">
+          <b>owner</b> / owner123 — all quarries
+        </button>
+        <button type="button" class="login-demo-btn" data-user="accounts" data-pass="acc123">
+          <b>accounts</b> / acc123 — both quarries
+        </button>
+        <button type="button" class="login-demo-btn" data-user="chitha" data-pass="chitha123">
+          <b>chitha</b> / chitha123 — Chithanavasal only
+        </button>
+        <button type="button" class="login-demo-btn" data-user="view" data-pass="view123">
+          <b>view</b> / view123 — Dashboard &amp; P&amp;L only
+        </button>
+      </div>
+    </form>
+  </div>
   <div class="app">
     <header class="topbar">
       <button class="icon-btn" id="menuToggle" title="Menu" aria-label="Menu">☰</button>
@@ -27,9 +55,15 @@
 
       <div class="top-actions">
         <button class="icon-btn" id="resetDemo" title="Reset demo data">↺</button>
-        <div class="user-chip">
-          <div class="avatar">A</div>
-          <span>Accountant</span>
+        <div class="user-menu" id="userMenu">
+          <button class="user-chip" id="userChipBtn" type="button" aria-haspopup="menu">
+            <div class="avatar" id="userAvatar">A</div>
+            <span id="userChipName">Sign in</span>
+          </button>
+          <div class="user-menu-drop" id="userMenuDrop" role="menu">
+            <div class="user-menu-meta" id="userMenuMeta"></div>
+            <button type="button" id="signOutBtn">Sign out</button>
+          </div>
         </div>
       </div>
     </header>
@@ -54,6 +88,7 @@
           <div class="nav-items">
             <button class="nav-item" data-page="sales"><span class="dot"></span>Block Marking</button>
             <button class="nav-item" data-page="sale"><span class="dot"></span>Procurement &amp; Sale</button>
+            <button class="nav-item" data-page="invoices"><span class="dot"></span>Proforma Invoice</button>
             <button class="nav-item" data-page="customers"><span class="dot"></span>Customer</button>
           </div>
         </div>
@@ -90,6 +125,7 @@
           </button>
           <div class="nav-items">
             <button class="nav-item" data-page="masters"><span class="dot"></span>Masters</button>
+            <button class="nav-item need-owner" data-page="users"><span class="dot"></span>Users &amp; roles</button>
           </div>
         </div>
       </aside>
@@ -983,6 +1019,69 @@
           </div>
         </section>
 
+        <!-- PROFORMA INVOICES -->
+        <section class="page" id="page-invoices">
+          <div class="page-head">
+            <div>
+              <h1>Proforma Invoice</h1>
+              <p>Vyapar-style PI for this quarry · Block (CBM) · Slab (SQF) · Export.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost" type="button" id="exportInvoicesBtn">Export</button>
+              <button class="btn btn-primary" type="button" id="addInvoiceBtn">+ Create PI</button>
+            </div>
+          </div>
+          <div class="grid grid-4" id="invoiceStats"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>All invoices</h2>
+              <div class="filters">
+                <select id="invoiceTypeFilter">
+                  <option value="all">All types</option>
+                  <option value="block">Block (CBM)</option>
+                  <option value="slab">Slab (SQF)</option>
+                  <option value="export">Export</option>
+                </select>
+                <select id="invoiceSort">
+                  <option value="date-desc">Sort: Date newest</option>
+                  <option value="date-asc">Sort: Date oldest</option>
+                  <option value="amt-desc">Sort: Amount high</option>
+                  <option value="party">Sort: Party</option>
+                </select>
+                <select id="invoicePageSize">
+                  <option value="10">10 / page</option>
+                  <option value="25">25 / page</option>
+                  <option value="50">50 / page</option>
+                </select>
+                <input type="search" id="invoiceSearch" placeholder="Search party / ref / item…" />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Ref</th>
+                    <th>Party</th>
+                    <th>Type</th>
+                    <th class="num">Qty</th>
+                    <th class="num">Tax</th>
+                    <th class="num">Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="invoiceTable"></tbody>
+              </table>
+            </div>
+            <div class="pager" id="invoicePager"></div>
+          </div>
+        </section>
+
+        <!-- PI EDITOR (Vyapar-like) -->
+        <section class="page pi-page" id="page-pieditor">
+          <div id="piEditorRoot"></div>
+        </section>
+
         <!-- CUSTOMERS -->
         <section class="page" id="page-customers">
           <div class="page-head">
@@ -1414,27 +1513,182 @@
           <div class="page-head">
             <div>
               <h1>Masters</h1>
-              <p>Quarries and expense categories — test multi-quarry isolation.</p>
+              <p>Company GSTIN / IE / banks (shared) · rate cards &amp; Excel import per quarry.</p>
             </div>
+            <span class="context-pill" id="mastersPill">—</span>
           </div>
           <div class="tabs" id="masterTabs">
-            <button class="tab active" data-mtab="quarries">Quarries</button>
+            <button class="tab active" data-mtab="company">Company</button>
+            <button class="tab" data-mtab="banks">Banks</button>
+            <button class="tab" data-mtab="quarries">Quarries</button>
+            <button class="tab" data-mtab="rates">Rate cards</button>
             <button class="tab" data-mtab="heads">Expense categories</button>
+            <button class="tab" data-mtab="import">Excel import</button>
           </div>
-          <div id="mtab-quarries" class="mtab">
+
+          <div id="mtab-company" class="mtab">
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Company profile</h2>
+                <button class="btn btn-primary btn-sm need-owner" type="button" id="saveCompanyBtn">Save</button>
+              </div>
+              <div class="panel-body">
+                <div class="form-grid cols-2">
+                  <label class="field"><span>Legal name</span><input id="coName" /></label>
+                  <label class="field"><span>GSTIN</span><input id="coGstin" placeholder="33ALPPA8100P1ZO" /></label>
+                  <label class="field"><span>IE code</span><input id="coIe" placeholder="ALPPA8100P" /></label>
+                  <label class="field"><span>State</span><select id="coState"></select></label>
+                  <label class="field" style="grid-column:1/-1"><span>Address</span><textarea id="coAddr" rows="3"></textarea></label>
+                  <label class="field"><span>Phone</span><input id="coPhone" /></label>
+                  <label class="field"><span>Email</span><input id="coEmail" type="email" /></label>
+                </div>
+                <p class="master-hint">Shared for all quarries. Printed on PI, DC, and bank letters. Owner can edit.</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="mtab-banks" class="mtab" style="display:none">
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Bank accounts</h2>
+                <button class="btn btn-ghost btn-sm need-owner" type="button" id="addBankBtn">+ Add bank</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Bank</th>
+                      <th>Branch</th>
+                      <th>A/c no</th>
+                      <th>IFSC</th>
+                      <th>Holder</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="bankTable"></tbody>
+                </table>
+              </div>
+              <p class="master-hint" style="padding:10px 14px">Company-shared (CUB Melur, TMB Melur…). Salary letters &amp; PI use these A/cs.</p>
+            </div>
+          </div>
+
+          <div id="mtab-quarries" class="mtab" style="display:none">
             <div class="panel">
               <div class="panel-head">
                 <h2>Quarry list</h2>
-                <button class="btn btn-ghost btn-sm" id="addQuarryBtn">+ Add quarry</button>
+                <button class="btn btn-ghost btn-sm need-owner" id="addQuarryBtn">+ Add quarry</button>
               </div>
               <div class="panel-body" id="quarryMasterList"></div>
             </div>
           </div>
+
+          <div id="mtab-rates" class="mtab" style="display:none">
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Rate card</h2>
+                <select id="rateQuarry" title="Quarry"></select>
+              </div>
+              <div class="panel-body">
+                <p class="master-hint" style="margin-top:0">Each quarry can have its own CBM rate, royalty ₹/CBM, GST %, and slab SQF rate. Used on marking, royalty, and PI.</p>
+                <div class="form-grid cols-3">
+                  <label class="field"><span>GST %</span><input id="rtGst" type="number" min="0" step="0.01" /></label>
+                  <label class="field"><span>Royalty ₹ / CBM</span><input id="rtRoy" type="number" min="0" /></label>
+                  <label class="field"><span>Slab ₹ / SQF</span><input id="rtSlab" type="number" min="0" /></label>
+                </div>
+                <h3 class="master-sub">Block CBM rates (₹)</h3>
+                <div class="form-grid cols-4">
+                  <label class="field"><span>Choice I</span><input id="rtCbmI" type="number" min="0" /></label>
+                  <label class="field"><span>Choice II</span><input id="rtCbmII" type="number" min="0" /></label>
+                  <label class="field"><span>Choice III</span><input id="rtCbmIII" type="number" min="0" /></label>
+                  <label class="field"><span>Mix</span><input id="rtCbmMix" type="number" min="0" /></label>
+                </div>
+                <div style="margin-top:14px">
+                  <button class="btn btn-primary btn-sm need-edit" type="button" id="saveRatesBtn">Save rate card</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div id="mtab-heads" class="mtab" style="display:none">
             <div class="panel">
               <div class="panel-head"><h2>Expense categories (company shared)</h2></div>
               <div class="panel-body" id="headsList"></div>
             </div>
+          </div>
+
+          <div id="mtab-import" class="mtab" style="display:none">
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Excel / CSV import</h2>
+                <select id="impQuarry" title="Target quarry"></select>
+              </div>
+              <div class="panel-body">
+                <p class="master-hint" style="margin-top:0">Opening books for the selected quarry. Parties are company-shared; staff, cash, markings, and openings go into that quarry.</p>
+                <div class="form-grid cols-2">
+                  <label class="field">
+                    <span>What to import</span>
+                    <select id="impKind">
+                      <option value="parties">Parties (customers / vendors)</option>
+                      <option value="staff">Staff / workers</option>
+                      <option value="expenses">Cash / expenses</option>
+                      <option value="markings">Block markings</option>
+                      <option value="openings">Party bills / openings</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>File</span>
+                    <input type="file" id="impFile" accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+                  </label>
+                </div>
+                <div class="import-actions">
+                  <button class="btn btn-ghost btn-sm" type="button" id="impTemplateBtn">Download template</button>
+                  <button class="btn btn-primary btn-sm need-edit" type="button" id="impRunBtn">Import into quarry</button>
+                </div>
+                <p class="master-hint" id="impStatus">Choose a type, download the template (or use your Excel with matching headers), then import.</p>
+                <div class="table-wrap" id="impPreviewWrap" style="display:none;margin-top:12px">
+                  <table>
+                    <thead id="impPreviewHead"></thead>
+                    <tbody id="impPreviewBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- USERS & ROLES (Owner) -->
+        <section class="page" id="page-users">
+          <div class="page-head">
+            <div>
+              <h1>Users &amp; roles</h1>
+              <p>Login accounts · Owner / Accountant / Viewer · quarry access.</p>
+            </div>
+            <button class="btn btn-primary need-owner" type="button" id="addUserBtn">+ Add user</button>
+          </div>
+          <div class="grid grid-4" id="userStats"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head">
+              <h2>Office logins</h2>
+              <input type="search" id="userSearch" placeholder="Search name / username / role…" style="max-width:240px" />
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Quarries</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="userTable"></tbody>
+              </table>
+            </div>
+            <p style="padding:10px 14px;margin:0;color:var(--muted);font-size:.8rem">
+              Owner = all quarries + delete masters. Accountant = entry on assigned quarries. Viewer = Dashboard &amp; P&amp;L only.
+            </p>
           </div>
         </section>
 
@@ -1507,6 +1761,7 @@
       <button data-page="staffmgmt"><span class="ico">👤</span>Staff</button>
       <button data-page="staffatt"><span class="ico">⏱</span>Att</button>
       <button data-page="masters"><span class="ico">⚙</span>More</button>
+      <button data-page="reports" class="viewer-only"><span class="ico">▣</span>P&amp;L</button>
     </nav>
   </div>
 
