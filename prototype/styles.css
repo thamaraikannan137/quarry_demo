@@ -1735,9 +1735,63 @@ button.staff-att-day {
     height: 42px;
     min-height: 42px;
   }
+  .staff-att-nav {
+    width: 100%;
+    min-width: 0;
+  }
+  .staff-att-nav:has(select) .staff-att-month-label {
+    display: none;
+  }
+  .staff-att-nav .staff-att-nav-btn:first-of-type { order: 1; }
+  .staff-att-nav select {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 42px;
+    font-size: 16px;
+  }
+  .staff-att-nav .staff-att-nav-btn:last-of-type { order: 3; }
   .staff-att-nav input[type="date"] {
+    flex: 1 1 auto;
+    min-width: 0;
     min-height: 42px;
     width: auto;
+    font-size: 16px;
+  }
+  .staff-att-control { width: 100%; }
+  .staff-att-control-label { display: none; }
+  .staff-sal-subhead {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px;
+  }
+  .staff-sal-subhead .staff-att-view-tabs {
+    width: 100%;
+    height: 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .staff-sal-subhead .staff-att-view-tabs .party-tab {
+    justify-content: center;
+    width: 100%;
+  }
+  .staff-sal-subhead .staff-att-toolbar-actions {
+    margin-left: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .staff-sal-subhead .staff-att-toolbar-actions .btn {
+    width: 100%;
+    min-width: 0;
+    padding: 0 8px;
+    font-size: .82rem;
+  }
+  .staff-sal-subhead #staffAdvActions .btn-primary {
+    grid-column: 1 / -1;
   }
   .stat { font-size: 1.05rem; }
   .card { padding: 10px 12px; }
